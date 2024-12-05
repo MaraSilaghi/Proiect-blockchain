@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\silag\\OneDrive\\Documents\\blockchain\\contracts\\FundraisingDAO.sol": {
+      "lastModificationDate": 1733375181285,
+      "contentHash": "64e65d0d9804c166337e18bcc556c403",
+      "sourceName": "contracts/FundraisingDAO.sol",
+      "solcConfig": {
+        "version": "0.8.27",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.27"
+      ],
+      "artifacts": [
+        "FundraisingDAO"
+      ]
+    }
+  }
+}
