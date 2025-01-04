@@ -1,10 +1,18 @@
 require("@matterlabs/hardhat-zksync-solc");
-
+require("@nomiclabs/hardhat-waffle");
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   zksolc: {
     version: "1.3.9",
     compilerSource: "binary",
+    defaultNetwork: "sepolia",
+    networks: {
+      hardhat: {},
+      sepolia: {
+        url: "https://sepolia.drpc.org",
+        accounts: ["0x${process.env.PRIVATE_KEY}"],
+      },
+    },
     settings: {
       optimizer: {
         enabled: true,
