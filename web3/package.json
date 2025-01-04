@@ -1,0 +1,23 @@
+{
+  "name": "hardhat-javascript-starter",
+  "scripts": {
+    "build": "npx thirdweb@latest detect",
+    "deploy": "npx thirdweb@latest deploy",
+    "publish": "npx thirdweb@latest publish"
+  },
+  "devDependencies": {
+    "@matterlabs/hardhat-zksync-solc": "^0.3.17",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.22.17"
+  },
+  "dependencies": {
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "@thirdweb-dev/contracts": "^3.8.0",
+    "@thirdweb-dev/sdk": "^4.0.99",
+    "chai": "^4.3.4",
+    "dotenv": "^16.4.7",
+    "thirdweb": "^5.80.0",
+    "zksync-web3": "^0.14.3"
+  }
+}
