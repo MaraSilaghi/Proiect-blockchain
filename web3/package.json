@@ -17,7 +17,7 @@
     "@thirdweb-dev/sdk": "^4.0.99",
     "chai": "^4.3.4",
     "dotenv": "^16.4.7",
-    "thirdweb": "^5.80.0",
+    "react-router-dom": "^6.28.1",
     "zksync-web3": "^0.14.3"
   }
 }

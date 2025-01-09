@@ -1,98 +1,98 @@
-import { ConnectButton } from "thirdweb/react";
-import thirdwebIcon from "./thirdweb.svg";
-import { client } from "./client";
+import React from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { ConnectWallet } from "@thirdweb-dev/react";
+import backgroundImg from "./assets/background.png";
+// Import your custom components
+import { CampaignList } from "./pages/CampaignList";
+import { CreateCampaignForm } from "./pages/CreateCampaignForm";
+import { EditCampaign } from "./pages/EditCampaign";
+
 
 export function App() {
-	return (
-		<main className="p-4 pb-10 min-h-[100vh] flex items-center justify-center container max-w-screen-lg mx-auto">
-			<div className="py-20">
-				<Header />
+  return (
+    <BrowserRouter>
+      {/* Main layout */}
+      <div style={{ minHeight: "100vh", margin: 0, padding: 0, backgroundColor: "black" }}>
+        {/* Navbar */}
+        <nav
+          className="flex justify-between items-center px-4 py-3 bg-zinc-900 shadow-md"
+          style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor:"#51465a" }}
+        >
+          <div className="flex gap-4">
+            <Link to="/" style={{ color: "#c4a9ae", fontSize:"18px", paddingRight:"3px" }} >
+              Home
+            </Link>
+            <Link to="/campaigns" style={{ color: "#c4a9ae", fontSize:"18px", paddingRight:"3px", }}>
+              All Campaigns
+            </Link>
+            <Link to="/create-campaign" style={{ color: "#c4a9ae", fontSize:"18px", paddingRight:"3px" }}>
+              Create Campaign
+            </Link>
+          </div>
+          <div>
+            <ConnectWallet className="bg-violet-600 hover:bg-violet-700 text-white py-1 px-4 rounded" />
+          </div>
+        </nav>
 
-				<div className="flex justify-center mb-20">
-					<ConnectButton
-						client={client}
-						appMetadata={{
-							name: "Example app",
-							url: "https://example.com",
-						}}
-					/>
-				</div>
-
-				<ThirdwebResources />
-			</div>
-		</main>
-	);
+        {/* Main Content */}
+        <main
+          style={{
+            width: "100%",
+            height: "100%",
+            padding: 0, // Remove extra padding
+            margin: 0,
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/campaigns" element={<CampaignList />} />
+            <Route path="/create-campaign" element={<CreateCampaignForm />} />
+            <Route path="/edit-campaign/:id" element={<EditCampaign />} />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
+  );
 }
 
-function Header() {
-	return (
-		<header className="flex flex-col items-center mb-20 md:mb-20">
-			<img
-				src={thirdwebIcon}
-				alt=""
-				className="size-[150px] md:size-[150px]"
-				style={{
-					filter: "drop-shadow(0px 0px 24px #a726a9a8)",
-				}}
-			/>
-
-			<h1 className="text-2xl md:text-6xl font-bold tracking-tighter mb-6 text-zinc-100">
-				thirdweb SDK
-				<span className="text-zinc-300 inline-block mx-1"> + </span>
-				<span className="inline-block -skew-x-6 text-violet-500"> vite </span>
-			</h1>
-
-			<p className="text-zinc-300 text-base">
-				Read the{" "}
-				<code className="bg-zinc-800 text-zinc-300 px-2 rounded py-1 text-sm mx-1">
-					README.md
-				</code>{" "}
-				file to get started.
-			</p>
-		</header>
-	);
-}
-
-function ThirdwebResources() {
-	return (
-		<div className="grid gap-4 lg:grid-cols-3 justify-center">
-			<ArticleCard
-				title="thirdweb SDK Docs"
-				href="https://portal.thirdweb.com/typescript/v5"
-				description="thirdweb TypeScript SDK documentation"
-			/>
-
-			<ArticleCard
-				title="Components and Hooks"
-				href="https://portal.thirdweb.com/typescript/v5/react"
-				description="Learn about the thirdweb React components and hooks in thirdweb SDK"
-			/>
-
-			<ArticleCard
-				title="thirdweb Dashboard"
-				href="https://thirdweb.com/dashboard"
-				description="Deploy, configure, and manage your smart contracts from the dashboard."
-			/>
-		</div>
-	);
-}
-
-function ArticleCard(props: {
-	title: string;
-	href: string;
-	description: string;
-}) {
-	return (
-		<a
-			href={`${props.href}?utm_source=vite-template`}
-			target="_blank"
-			className="flex flex-col border border-zinc-800 p-4 rounded-lg hover:bg-zinc-900 transition-colors hover:border-zinc-700"
-			rel="noreferrer"
-		>
-			<article>
-				<h2 className="text-lg font-semibold mb-2">{props.title}</h2>
-				<p className="text-sm text-zinc-400">{props.description}</p>
-			</article>
-		</a>
-	);
+/** Placeholder for the home page */
+function HomePage() {
+  return (
+    <div
+      style={{
+        backgroundImage: `url(${backgroundImg})`,
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        backgroundPosition: "center",
+        height: "100%",
+        minHeight: "100vh",
+        width: "100%",
+        margin: 0,
+        padding: 0,
+        position: "relative",
+      }}
+    >
+          <h2
+            style={{fontSize:"70px", 
+              color:"#ffc0cb", 
+              fontWeight:"600", 
+              textAlign:"center",
+              paddingTop:"150px"
+            }}
+          >
+            Crowdfunding App
+          </h2>
+          <h3 
+            style={{
+            fontSize:"25px", 
+            color:"#e1bbc2",
+            fontWeight:"500",
+            textAlign:"center",
+            margin:"0px"
+            }}> Create campaigns, support projects, and track progress easily. Start by
+        connecting your wallet.
+            </h3>
+        </div>
+  );
 }

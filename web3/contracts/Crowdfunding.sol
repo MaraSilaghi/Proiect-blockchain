@@ -26,6 +26,8 @@ contract Crowdfunding {
     }
 
     event CampaignCreated(uint256 id, address owner, string title);
+    event CampaignEdited(uint256 id, string newTitle, string newDescription);
+    event CampaignDeleted(uint256 id, address owner);
     event DonationReceived(
         uint256 campaignId,
         address donator,
@@ -34,6 +36,11 @@ contract Crowdfunding {
     );
     event RemainingAmountToRaise(uint256 campaignId, uint256 amount);
     event Withdrawal(uint256 campaignId, address owner, uint256 amount);
+
+    modifier onlyOwner(uint256 _id) {
+        require(msg.sender == campaigns[_id].owner, "Not the campaign owner.");
+        _;
+    }
 
     function createCampaign(
         address _owner,
@@ -63,6 +70,47 @@ contract Crowdfunding {
         return numberOfCampaigns - 1;
     }
 
+    function editCampaign(
+        uint256 _id,
+        string memory _newTitle,
+        string memory _newDescription,
+        uint256 _newTarget,
+        uint256 _newDeadline,
+        string memory _newImage
+    ) public onlyOwner(_id) {
+        Campaign storage campaign = campaigns[_id];
+
+        // Validate new deadline
+        require(
+            _newDeadline > block.timestamp,
+            "The new deadline should be in the future."
+        );
+
+        // Update the campaign data
+        campaign.title = _newTitle;
+        campaign.description = _newDescription;
+        campaign.target = _newTarget;
+        campaign.deadline = _newDeadline;
+        campaign.image = _newImage;
+
+        emit CampaignEdited(_id, _newTitle, _newDescription);
+    }
+
+    function deleteCampaign(uint256 _id) public onlyOwner(_id) {
+        Campaign storage campaign = campaigns[_id];
+
+        // Ensure that the campaign has not raised any funds
+        require(
+            campaign.amountCollected == 0,
+            "Cannot delete a campaign with collected funds."
+        );
+
+        // Delete the campaign
+        delete campaigns[_id];
+
+        emit CampaignDeleted(_id, msg.sender);
+    }
+
     function donateToCampaign(uint256 _id) public payable {
         uint256 amount = msg.value;
 
@@ -72,7 +120,7 @@ contract Crowdfunding {
             "Campaign is no longer active."
         );
 
-        uint256 commission = amount / 100; // 1% comision
+        uint256 commission = amount / 100; // 1% commission
         uint256 remainingDonationAmount = amount - commission;
 
         campaign.amountCollected += remainingDonationAmount;
@@ -105,29 +153,6 @@ contract Crowdfunding {
         );
     }
 
-    function getDonators(
-        uint256 _id
-    ) public view returns (address[] memory, uint256[] memory) {
-        return (campaigns[_id].donators, campaigns[_id].donations);
-    }
-
-    function getCampaigns() public view returns (Campaign[] memory) {
-        Campaign[] memory allCampaigns = new Campaign[](numberOfCampaigns);
-
-        for (uint i = 0; i < numberOfCampaigns; i++) {
-            Campaign storage item = campaigns[i];
-
-            allCampaigns[i] = item;
-        }
-
-        return allCampaigns;
-    }
-
-    modifier onlyOwner(uint256 _id) {
-        require(msg.sender == campaigns[_id].owner, "Not the campaign owner.");
-        _;
-    }
-
     function withdrawFunds(uint256 _id) public onlyOwner(_id) {
         Campaign storage campaign = campaigns[_id];
 
@@ -144,6 +169,23 @@ contract Crowdfunding {
             campaign.amountCollected = 0;
             emit Withdrawal(_id, campaign.owner, campaign.amountCollected);
         }
+    }
+
+    function getDonators(
+        uint256 _id
+    ) public view returns (address[] memory, uint256[] memory) {
+        return (campaigns[_id].donators, campaigns[_id].donations);
+    }
+
+    function getCampaigns() public view returns (Campaign[] memory) {
+        Campaign[] memory allCampaigns = new Campaign[](numberOfCampaigns);
+
+        for (uint i = 0; i < numberOfCampaigns; i++) {
+            Campaign storage item = campaigns[i];
+            allCampaigns[i] = item;
+        }
+
+        return allCampaigns;
     }
 
     function isCampaignActive(uint256 _deadline) public view returns (bool) {

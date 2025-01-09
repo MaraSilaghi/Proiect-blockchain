@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@tanstack/react-query": "^5.62.15",
+    "@thirdweb-dev/react": "^4.9.4",
+    "@thirdweb-dev/sdk": "^4.0.99",
+    "ethers": "^5.7.2",
+    "react-router-dom": "^6.28.1"
+  },
+  "devDependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "buffer": "^6.0.3",
+    "esbuild": "^0.24.2"
+  }
+}
