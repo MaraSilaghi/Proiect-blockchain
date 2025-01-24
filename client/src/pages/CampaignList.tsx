@@ -8,6 +8,10 @@ import {
 } from "@thirdweb-dev/react";
 import { ethers } from "ethers";
 import { Link } from "react-router-dom";
+import Web3 from "web3";
+
+const web3 = new Web3(window.ethereum);
+
 
 const CROWDFUNDING_CONTRACT_ADDRESS = "0xee4bc32b70DB3df04974D379319F937D7376D8Ce";
 
@@ -33,52 +37,113 @@ export function CampaignList() {
     (campaign: any) => campaign.owner !== "0x0000000000000000000000000000000000000000"
   );
 
+  
   const handleDonate = async (filteredIndex: number, amount: string) => {
     try {
+      // Verificăm dacă utilizatorul este conectat
+      if (!address) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "You need to connect your wallet to make a donation.",
+        });
+        return;
+      }
+  
+      if (!contract) {
+        setMessages({ ...messages, [filteredIndex]: "Contract not loaded. Please try again later." });
+        return;
+      }
+  
       const campaignToDonate = validCampaigns[filteredIndex];
       const originalIndex = campaigns?.findIndex(
         (campaign: any) => campaign === campaignToDonate
       );
-
+  
       if (originalIndex === -1 || originalIndex === undefined) {
         setMessages({ ...messages, [filteredIndex]: "Campaign not found." });
         return;
       }
-
-      // Check if the campaign is still active
+  
       if (Date.now() / 1000 > campaignToDonate.deadline) {
         setMessages({ ...messages, [filteredIndex]: "This campaign is no longer active." });
         return;
       }
-
-      const amountInWei = ethers.utils.parseEther(amount); // Convert ETH to wei
-
+  
+      const targetInEth = ethers.utils.formatEther(campaignToDonate.target.toString());
+      const collectedInEth = ethers.utils.formatEther(campaignToDonate.amountCollected.toString());
+      const progress = (Number(collectedInEth) / Number(targetInEth)) * 100;
+  
+      // Verificăm dacă campania a atins 100% din scopul de finanțare
+      if (progress >= 100) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "This campaign has already reached its funding goal. Donations are no longer accepted.",
+        });
+        return;
+      }
+  
+      const amountInWei = ethers.utils.parseEther(amount);
+  
       if (amountInWei.lte(0)) {
         setMessages({ ...messages, [filteredIndex]: "Donation amount must be greater than 0." });
         return;
       }
-
-      // Call the donateToCampaign function
+  
+      const data = contract.encoder.encode("donateToCampaign", [originalIndex]);
+  
+      const transaction = {
+        from: address,
+        to: CROWDFUNDING_CONTRACT_ADDRESS,
+        value: amountInWei.toString(),
+        data: data,
+      };
+  
+      const estimatedGas = await web3.eth.estimateGas(transaction);
+      const gasPrice = await web3.eth.getGasPrice();
+  
+      const estimatedGasCostInEth = web3.utils.fromWei(
+        (BigInt(estimatedGas) * BigInt(gasPrice)).toString(),
+        "ether"
+      );
+  
+      const maxGasCost = 0.01;
+  
+      if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: `Gas cost too high: ${estimatedGasCostInEth} ETH. Transaction not allowed.`,
+        });
+        return;
+      }
+  
+      setMessages({
+        ...messages,
+        [filteredIndex]: `Transaction allowed! Estimated gas cost: ${estimatedGasCostInEth} ETH.`,
+      });
+  
       await donateToCampaign({ args: [originalIndex], overrides: { value: amountInWei } });
-
+  
       setMessages({
         ...messages,
         [filteredIndex]: `Successfully donated ${amount} ETH! 1% of donations go to platform maintenance and development.`,
       });
-      setDonationAmounts({ ...donationAmounts, [filteredIndex]: "" }); // Reset input
+      setDonationAmounts({ ...donationAmounts, [filteredIndex]: "" });
     } catch (error: any) {
       console.error("Failed to donate:", error);
-
-      // Format the error message
+  
       const errorMessage =
         error?.message?.includes("insufficient funds")
           ? "Insufficient funds in your wallet. Please ensure you have enough ETH to cover the donation and gas fees."
           : "Something went wrong. Please try again.";
-
+  
       setMessages({ ...messages, [filteredIndex]: errorMessage });
     }
   };
-
+  
+  
+  
+  
+  
   const handleDelete = async (filteredIndex: number) => {
     const campaignToDelete = validCampaigns[filteredIndex];
     const originalIndex = campaigns?.findIndex(
@@ -94,7 +159,7 @@ export function CampaignList() {
       try {
         await deleteCampaign({ args: [originalIndex] });
         alert("Campaign deleted successfully!");
-        window.location.reload(); // Refresh the list after deletion
+        window.location.reload(); 
       } catch (error) {
         console.error("Failed to delete campaign:", error);
       }
@@ -111,15 +176,15 @@ export function CampaignList() {
         backgroundPosition: "center",
         height: "100%",
         minHeight: "100vh",
-        width: "100%", // Ensure full-width coverage
+        width: "100%", 
         margin: 0,
-        padding: 0, // Remove extra padding
-        position: "relative", // Ensure content doesn't affect background
+        padding: 0, 
+        position: "relative", 
       }}
     >
       <div
         style={{
-          padding: "6rem 2rem", // Apply padding to the content
+          padding: "6rem 2rem",
           textAlign: "center",
         }}
       >
@@ -144,7 +209,7 @@ export function CampaignList() {
                 padding: "1rem",
                 backgroundColor:"#3e3644",
                 borderRadius: "10px",
-                maxWidth: "600px", // Center content with fixed width
+                maxWidth: "600px", 
               }}
             >
               <h3 style={{fontSize:"25px", color:"#ffc0cb", fontWeight:"500"}}>{campaign.title}</h3>
@@ -184,8 +249,8 @@ export function CampaignList() {
               >
                 <div
                   style={{
-                    width: `${Math.min(progress, 100)}%`, // Limit to 100%
-                    background: progress >= 100 ? "green" : "blue", // Green if target reached
+                    width: `${Math.min(progress, 100)}%`,
+                    background: progress >= 100 ? "green" : "blue", // verde daca avem 100%
                     height: "10px",
                   }}
                 ></div>
@@ -193,32 +258,42 @@ export function CampaignList() {
               <p style={{color:"#e1bbc2"}}>{Math.min(progress, 100).toFixed(2)}% funded</p>
   
               {/* Donation Form */}
-              <div style={{ marginTop: "1rem" }}>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Amount (ETH)"
-                  value={donationAmounts[filteredIndex] || ""}
-                  onChange={(e) =>
-                    setDonationAmounts({ ...donationAmounts, [filteredIndex]: e.target.value })
-                  }
-                  className="border border-zinc-600 bg-zinc-800 text-white px-1 py-1 w-32"
-                />
-                <button
-                  onClick={() =>
-                    handleDonate(filteredIndex, donationAmounts[filteredIndex] || "0")
-                  }
-                  className="bg-[#b3888d] text-white py-1 px-4 ml-1 rounded"
-                >
-                  Donate
-                </button>
-              </div>
+              {progress < 100 ? (
+                <div style={{ marginTop: "1rem" }}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Amount (ETH)"
+                    value={donationAmounts[filteredIndex] || ""}
+                    onChange={(e) =>
+                      setDonationAmounts({ ...donationAmounts, [filteredIndex]: e.target.value })
+                    }
+                    className="border border-zinc-600 bg-zinc-800 text-white px-1 py-1 w-32"
+                  />
+                  <button
+                    onClick={() =>
+                      handleDonate(filteredIndex, donationAmounts[filteredIndex] || "0")
+                    }
+                    className="bg-[#b3888d] text-white py-1 px-4 ml-1 rounded"
+                  >
+                    Donate
+                  </button>
+                </div>
+              ) : (
+                <p style={{ color: "green", marginTop: "1rem" }}>
+                  This campaign has reached its funding goal. Thank you for your support!
+                </p>
+              )}
+
   
               {/* Success/Error Message */}
               {messages[filteredIndex] && (
                 <p
                   style={{
-                    color: messages[filteredIndex].includes("Successfully") ? "green" : "red",
+                    color: messages[filteredIndex].includes("Successfully") || 
+                          messages[filteredIndex].includes("Transaction allowed")
+                      ? "green"
+                      : "red",
                     marginTop: "1rem",
                   }}
                 >
