@@ -8,6 +8,9 @@ import {
 } from "@thirdweb-dev/react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
+import Web3 from "web3";
+
+const web3 = new Web3(window.ethereum);
 
 const CROWDFUNDING_CONTRACT_ADDRESS = "0xee4bc32b70DB3df04974D379319F937D7376D8Ce";
 
@@ -84,19 +87,35 @@ export function EditCampaign() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!id) {
-      alert("Invalid campaign ID.");
+      setErrorMessage("Invalid campaign ID.");
+      setSuccessMessage(null);
       return;
     }
-
+  
     const campaignIndex = parseInt(id, 10);
-
+  
     if (isNaN(campaignIndex)) {
-      alert("Invalid campaign ID.");
+      setErrorMessage("Invalid campaign ID.");
+      setSuccessMessage(null);
       return;
     }
-
+  
+    // Verificăm dacă utilizatorul este conectat
+    if (!address) {
+      setErrorMessage("You need to connect your wallet to edit a campaign.");
+      setSuccessMessage(null);
+      return;
+    }
+  
+    // Verificăm dacă contractul este încărcat
+    if (!contract) {
+      setErrorMessage("Contract is not loaded. Please wait or refresh the page.");
+      setSuccessMessage(null);
+      return;
+    }
+  
     const validCampaigns = campaigns.filter(
       (campaign: any) =>
         campaign.owner !== "0x0000000000000000000000000000000000000000"
@@ -105,21 +124,66 @@ export function EditCampaign() {
     const originalIndex = campaigns?.findIndex(
       (campaign: any) => campaign === campaignToUpdate
     );
-
+  
     if (originalIndex === -1 || originalIndex === undefined) {
-      alert("Error: Campaign not found.");
+      setErrorMessage("Error: Campaign not found.");
+      setSuccessMessage(null);
       return;
     }
-
+  
     try {
       setErrorMessage(null);
       setSuccessMessage(null);
-
+  
       const targetInWei = ethers.utils.parseEther(target);
       const deadlineTimestamp = Math.floor(
         new Date(deadline).getTime() / 1000
       );
-
+  
+      // Construim datele pentru tranzacție
+      const data = contract.encoder.encode("editCampaign", [
+        originalIndex,
+        title,
+        description,
+        targetInWei.toString(),
+        deadlineTimestamp,
+        image,
+      ]);
+  
+      const transaction = {
+        from: address,
+        to: CROWDFUNDING_CONTRACT_ADDRESS,
+        data: data,
+      };
+  
+      // Estimăm costul de gas
+      const estimatedGas = await web3.eth.estimateGas(transaction);
+  
+      // Obținem prețul curent al gas-ului
+      const gasPrice = await web3.eth.getGasPrice();
+  
+      // Calculăm costul total de gas în ETH
+      const estimatedGasCostInEth = web3.utils.fromWei(
+        (BigInt(estimatedGas) * BigInt(gasPrice)).toString(),
+        "ether"
+      );
+  
+      // Setăm limita maximă pentru costul de gas
+      const maxGasCost = 0.01; // Exemplu: 0.01 ETH
+  
+      if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
+        setErrorMessage(
+          `Gas cost too high: ${estimatedGasCostInEth} ETH. Transaction not allowed.`
+        );
+        return;
+      }
+  
+      // Mesaj de confirmare pentru utilizator
+      setSuccessMessage(
+        `Transaction allowed! Estimated gas cost: ${estimatedGasCostInEth} ETH. Proceeding...`
+      );
+  
+      // Efectuăm tranzacția pentru actualizarea campaniei
       await editCampaign({
         args: [
           originalIndex,
@@ -130,16 +194,27 @@ export function EditCampaign() {
           image,
         ],
       });
-
+  
       setSuccessMessage("Campaign updated successfully!");
     } catch (error: any) {
       console.error("Failed to edit campaign:", error);
+  
+      // Tratăm cazul în care utilizatorul anulează tranzacția
+      if (error?.code === 4001) { // Cod specific pentru "User rejected the transaction" în MetaMask
+        setErrorMessage("Transaction was cancelled by the user.");
+        setSuccessMessage(null); // Eliminăm mesajul de succes
+        return;
+      }
+  
+      // Alte erori
       const errorMessage = error?.message?.includes("insufficient funds")
         ? "Insufficient funds. Please ensure you have enough ETH in your wallet to cover the transaction gas fees."
         : "Something went wrong. Please check your inputs and try again.";
       setErrorMessage(errorMessage);
+      setSuccessMessage(null); // Eliminăm mesajul de succes
     }
   };
+  
 
   return (
     <div
