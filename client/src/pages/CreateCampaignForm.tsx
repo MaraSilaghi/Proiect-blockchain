@@ -30,14 +30,13 @@ export function CreateCampaignForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   
-    // Verificăm dacă utilizatorul este conectat
+
     if (!address) {
       setErrorMessage("You need to connect your wallet to create a campaign.");
       setSuccessMessage(null);
       return;
     }
   
-    // Verificăm dacă contractul este încărcat
     if (!contract) {
       setErrorMessage("Contract is not loaded. Please wait or refresh the page.");
       setSuccessMessage(null);
@@ -51,7 +50,6 @@ export function CreateCampaignForm() {
       const targetInWei = ethers.utils.parseEther(target);
       const deadlineTimestamp = Math.floor(new Date(deadline).getTime() / 1000);
   
-      // Construim manual datele tranzacției
       const data = contract.encoder.encode("createCampaign", [
         address,
         title,
@@ -67,20 +65,16 @@ export function CreateCampaignForm() {
         data: data,
       };
   
-      // Estimăm costul de gas
       const estimatedGas = await web3.eth.estimateGas(transaction);
-  
-      // Obținem prețul curent al gas-ului
+
       const gasPrice = await web3.eth.getGasPrice();
   
-      // Calculăm costul total de gas în ETH
       const estimatedGasCostInEth = web3.utils.fromWei(
         (BigInt(estimatedGas) * BigInt(gasPrice)).toString(),
         "ether"
       );
-  
-      // Setăm limita maximă pentru costul de gas
-      const maxGasCost = 0.01; // Exemplu: 0.01 ETH
+
+      const maxGasCost = 0.01; 
   
       if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
         setErrorMessage(
@@ -89,12 +83,10 @@ export function CreateCampaignForm() {
         return;
       }
   
-      // Mesaj de confirmare pentru utilizator
       setSuccessMessage(
         `Transaction allowed! Estimated gas cost: ${estimatedGasCostInEth} ETH. Proceeding...`
       );
-  
-      // Efectuăm tranzacția pentru crearea campaniei
+
       await createCampaign({
         args: [
           address,
@@ -114,20 +106,18 @@ export function CreateCampaignForm() {
       setImage("");
     } catch (error: any) {
       console.error("Error creating campaign:", error);
-  
-      // Tratăm cazul în care utilizatorul anulează tranzacția
-      if (error?.code === 4001) { // Cod specific pentru "User rejected the transaction" în MetaMask
+
+      if (error?.code === 4001) { 
         setErrorMessage("Transaction was cancelled by the user.");
-        setSuccessMessage(null); // Eliminăm mesajul de succes
+        setSuccessMessage(null); 
         return;
       }
   
-      // Alte erori
       const errorMessage = error?.message?.includes("insufficient funds")
         ? "Insufficient funds. Please ensure you have enough ETH in your wallet to cover the transaction gas fees."
         : "Something went wrong. Please check your inputs and try again.";
       setErrorMessage(errorMessage);
-      setSuccessMessage(null); // Eliminăm mesajul de succes
+      setSuccessMessage(null); 
     }
   };
   
@@ -303,8 +293,6 @@ export function CreateCampaignForm() {
   </button>
 </form>
 
-
-          {/* Error Message */}
           {errorMessage && (
             <div
               style={{
@@ -317,7 +305,6 @@ export function CreateCampaignForm() {
             </div>
           )}
 
-          {/* Success Message */}
           {successMessage && (
             <div
               style={{
