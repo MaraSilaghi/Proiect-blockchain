@@ -2,18 +2,16 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { ConnectWallet } from "@thirdweb-dev/react";
 import backgroundImg from "./assets/background.png";
-// Import your custom components
 import { CampaignList } from "./pages/CampaignList";
 import { CreateCampaignForm } from "./pages/CreateCampaignForm";
 import { EditCampaign } from "./pages/EditCampaign";
+import { MyEventsSubscriber } from "./MyEventsSubscriber";
 
 
 export function App() {
   return (
     <BrowserRouter>
-      {/* Main layout */}
       <div style={{ minHeight: "100vh", margin: 0, padding: 0, backgroundColor: "black" }}>
-        {/* Navbar */}
         <nav
           className="flex justify-between items-center px-4 py-3 bg-zinc-900 shadow-md"
           style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor:"#51465a" }}
@@ -34,12 +32,11 @@ export function App() {
           </div>
         </nav>
 
-        {/* Main Content */}
         <main
           style={{
             width: "100%",
             height: "100%",
-            padding: 0, // Remove extra padding
+            padding: 0,
             margin: 0,
           }}
         >
@@ -49,13 +46,13 @@ export function App() {
             <Route path="/create-campaign" element={<CreateCampaignForm />} />
             <Route path="/edit-campaign/:id" element={<EditCampaign />} />
           </Routes>
+          <MyEventsSubscriber />
         </main>
       </div>
     </BrowserRouter>
   );
 }
 
-/** Placeholder for the home page */
 function HomePage() {
   return (
     <div

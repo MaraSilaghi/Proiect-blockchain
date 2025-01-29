@@ -23,7 +23,7 @@ export function CampaignList() {
   const address = useAddress();
 
   const [donationAmounts, setDonationAmounts] = useState<{ [key: number]: string }>({});
-  const [messages, setMessages] = useState<{ [key: number]: string }>({}); // Tracks messages per campaign
+  const [messages, setMessages] = useState<{ [key: number]: string }>({});
 
   if (isLoading) {
     return <div>Loading campaigns...</div>;
@@ -32,7 +32,6 @@ export function CampaignList() {
     return <div>Error reading campaigns</div>;
   }
 
-  // Filter out invalid campaigns
   const validCampaigns = campaigns?.filter(
     (campaign: any) => campaign.owner !== "0x0000000000000000000000000000000000000000"
   );
@@ -40,7 +39,6 @@ export function CampaignList() {
   
   const handleDonate = async (filteredIndex: number, amount: string) => {
     try {
-      // Verificăm dacă utilizatorul este conectat
       if (!address) {
         setMessages({
           ...messages,
@@ -56,8 +54,9 @@ export function CampaignList() {
   
       const campaignToDonate = validCampaigns[filteredIndex];
       const originalIndex = campaigns?.findIndex(
-        (campaign: any) => campaign === campaignToDonate
+        (campaign: any) => campaign.owner === campaignToDonate.owner && campaign.title === campaignToDonate.title
       );
+      
   
       if (originalIndex === -1 || originalIndex === undefined) {
         setMessages({ ...messages, [filteredIndex]: "Campaign not found." });
@@ -72,8 +71,7 @@ export function CampaignList() {
       const targetInEth = ethers.utils.formatEther(campaignToDonate.target.toString());
       const collectedInEth = ethers.utils.formatEther(campaignToDonate.amountCollected.toString());
       const progress = (Number(collectedInEth) / Number(targetInEth)) * 100;
-  
-      // Verificăm dacă campania a atins 100% din scopul de finanțare
+
       if (progress >= 100) {
         setMessages({
           ...messages,
@@ -141,30 +139,109 @@ export function CampaignList() {
   };
   
   
-  
-  
-  
   const handleDelete = async (filteredIndex: number) => {
-    const campaignToDelete = validCampaigns[filteredIndex];
-    const originalIndex = campaigns?.findIndex(
-      (campaign: any) => campaign === campaignToDelete
-    );
-
-    if (originalIndex === -1) {
-      alert("Error: Campaign not found.");
-      return;
-    }
-
-    if (window.confirm("Are you sure you want to delete this campaign?")) {
-      try {
-        await deleteCampaign({ args: [originalIndex] });
-        alert("Campaign deleted successfully!");
-        window.location.reload(); 
-      } catch (error) {
-        console.error("Failed to delete campaign:", error);
+    try {
+      if (!address) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "You need to connect your wallet to delete a campaign.",
+        });
+        return;
       }
+  
+      if (!contract) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "Contract not loaded. Please try again later.",
+        });
+        return;
+      }
+  
+      const campaignToDelete = validCampaigns[filteredIndex];
+      const originalIndex = campaigns?.findIndex(
+        (campaign: any) => campaign.owner === campaignToDelete.owner && campaign.title === campaignToDelete.title
+      );
+  
+      if (originalIndex === -1 || originalIndex === undefined) {
+        setMessages({ ...messages, [filteredIndex]: "Error: Campaign not found." });
+        return;
+      }
+      
+      const collectedInEth = ethers.utils.formatEther(campaignToDelete.amountCollected.toString());
+      if (Number(collectedInEth) > 0) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "This campaign has received donations and cannot be deleted.",
+        });
+        return;
+      }
+  
+      const data = contract.encoder.encode("deleteCampaign", [originalIndex]);
+  
+      const transaction = {
+        from: address,
+        to: CROWDFUNDING_CONTRACT_ADDRESS,
+        data: data,
+      };
+  
+      const estimatedGas = await web3.eth.estimateGas(transaction);
+      const gasPrice = await web3.eth.getGasPrice();
+  
+      const estimatedGasCostInEth = web3.utils.fromWei(
+        (BigInt(estimatedGas) * BigInt(gasPrice)).toString(),
+        "ether"
+      );
+  
+      const maxGasCost = 0.01;
+  
+      if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: `Gas cost too high: ${estimatedGasCostInEth} ETH. Transaction not allowed.`,
+        });
+        return;
+      }
+  
+      setMessages({
+        ...messages,
+        [filteredIndex]: `Transaction allowed! Estimated gas cost: ${estimatedGasCostInEth} ETH.`,
+      });
+  
+      await deleteCampaign({ args: [originalIndex] });
+  
+      setMessages({
+        ...messages,
+        [filteredIndex]: "Campaign deleted successfully!",
+      });
+  
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Failed to delete campaign:", error);
+  
+      if (error?.code === 4001) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "Transaction was cancelled by the user.",
+        });
+        return;
+      }
+  
+      if (error?.message?.includes("Cannot delete a campaign with collected funds")) {
+        setMessages({
+          ...messages,
+          [filteredIndex]: "This campaign has received donations and cannot be deleted.",
+        });
+        return;
+      }
+  
+      const errorMessage = "Something went wrong. Please try again.";
+      setMessages({ ...messages, [filteredIndex]: errorMessage });
     }
   };
+  
+  
+  
+  
 
   return (
     <div
@@ -198,7 +275,7 @@ export function CampaignList() {
         {validCampaigns?.map((campaign: any, filteredIndex: number) => {
           const targetInEth = ethers.utils.formatEther(campaign.target.toString());
           const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
-          const progress = (Number(collectedInEth) / Number(targetInEth)) * 100; // Calculate progress percentage
+          const progress = (Number(collectedInEth) / Number(targetInEth)) * 100; 
   
           return (
             <div
@@ -238,7 +315,6 @@ export function CampaignList() {
                 <strong>Amount Collected:</strong> {collectedInEth} ETH
               </p>
   
-              {/* Progress Bar */}
               <div
                 style={{
                   background: "#e0e0e0",
@@ -250,14 +326,13 @@ export function CampaignList() {
                 <div
                   style={{
                     width: `${Math.min(progress, 100)}%`,
-                    background: progress >= 100 ? "green" : "blue", // verde daca avem 100%
+                    background: progress >= 100 ? "green" : "blue", 
                     height: "10px",
                   }}
                 ></div>
               </div>
               <p style={{color:"#e1bbc2"}}>{Math.min(progress, 100).toFixed(2)}% funded</p>
-  
-              {/* Donation Form */}
+
               {progress < 100 ? (
                 <div style={{ marginTop: "1rem" }}>
                   <input
@@ -285,8 +360,7 @@ export function CampaignList() {
                 </p>
               )}
 
-  
-              {/* Success/Error Message */}
+
               {messages[filteredIndex] && (
                 <p
                   style={{
@@ -300,8 +374,7 @@ export function CampaignList() {
                   {messages[filteredIndex]}
                 </p>
               )}
-  
-              {/* Edit/Delete Buttons (Only for Owner) */}
+
               {address === campaign.owner && (
                 <div style={{ marginTop: "1rem" }}>
                   <Link
