@@ -20,3 +20,394 @@
     @apply bg-zinc-950 text-neutral-200;
   }
 }
+
+
+.campaigns-container {
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center;
+  height: 100%;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.campaigns-title {
+  color: #ffc0cb;
+  font-size: 50px;
+  margin-top: -50px;
+  margin-bottom: 50px;
+  text-align: center;
+}
+
+.campaign-card {
+  margin: 1rem auto;
+  border: 1px solid #444;
+  padding: 1rem;
+  background-color: #3e3644;
+  border-radius: 10px;
+  max-width: 600px;
+  text-align: center;
+}
+
+.campaign-info {
+  color: #e1bbc2;
+}
+
+.progress-bar-container {
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-bar {
+  height: 10px;
+  background: blue;
+}
+
+.progress-bar.funded {
+  background: green;
+}
+
+.button {
+  background-color: #8e6470;
+  color: white;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  margin-left: 1rem;
+}
+
+.withdraw-button {
+  background-color: #b3888d;
+  color: #fff;
+  padding: 0.7rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.success-message {
+  color: green;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+}
+
+
+.campaigns-title {
+  color: #ffc0cb;
+  font-size: 50px;
+  margin-top: -50px;
+  margin-bottom: 50px;
+  text-align: center;
+}
+
+.campaign-card {
+  margin: 1rem auto;
+  border: 1px solid #444;
+  padding: 1rem;
+  background-color: #3e3644;
+  border-radius: 10px;
+  max-width: 600px;
+  text-align: center;
+}
+
+.campaign-info {
+  color: #e1bbc2;
+}
+
+.progress-bar-container {
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-bar {
+  height: 10px;
+  background: blue;
+}
+
+.progress-bar.funded {
+  background: green;
+}
+
+.button {
+  background-color: #8e6470;
+  color: white;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  margin-left: 1rem;
+}
+
+.withdraw-button {
+  background-color: #b3888d;
+  color: #fff;
+  padding: 0.7rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.success-message {
+  color: green;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+}
+
+
+.campaigns-wrapper {
+  max-width: 800px;
+  margin: auto;
+}
+
+.campaigns-title {
+  color: #ffc0cb;
+  font-size: 50px;
+  margin-bottom: 50px;
+}
+
+.campaign-card {
+  background-color: #3e3644;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 600px;
+}
+
+.campaign-image {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.progress-bar {
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 1rem 0;
+  height: 10px;
+}
+
+.progress-fill {
+  height: 10px;
+  background: blue;
+}
+
+.progress-text {
+  color: #e1bbc2;
+}
+
+.success-message {
+  color: green;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+}
+
+.input-field {
+  background-color: #51465a;
+  border: 1px solid #e1bbc2;
+  color: #fff;
+  border-radius: 5px;
+  padding: 0.5rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.donate-button,
+.withdraw-button {
+  background-color: #b3888d;
+  color: white;
+  padding: 0.7rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.edit-button{
+  margin-left: "1rem";
+  color: "white";
+  background-color: "#8e6470";
+  padding: "0.7rem 1.2rem";
+  border: "none";
+  cursor: "pointer";
+  border-radius: "0.3rem";
+}
+
+.delete-button{
+  margin-left: "1rem";
+  color: "white";
+  background-color: "#8e6470";
+  padding: "0.5rem 1rem";
+  border: "none";
+  cursor: "pointer";
+  border-radius: "0.3rem";
+}
+
+.commission-container{
+    margin-top: "2rem";
+    padding: "1rem";
+    border-radius: "10px";
+    background-color: "#4a3c56";
+    max-width: "500px";
+    margin: "auto";
+    text-align: "center";
+}
+
+.withdraw-input{
+  background-color: "#51465a";
+  border: "1px solid #e1bbc2";
+  color: "#fff";
+  border-radius: "5px";
+  width: "100%";
+  padding: "0.5rem";
+  margin-top: "1rem";
+}
+
+.edit-campaign-container {
+  background-size: cover;
+  min-height: 100vh;
+  padding: 6rem 2rem 2rem;
+  text-align: center;
+}
+
+.edit-campaign-card {
+  background-color: #3e3644;
+  border-radius: 10px;
+  padding: 2rem;
+  max-width: 600px;
+  margin: auto;
+  border: 1px solid #444;
+}
+
+.edit-campaign-title {
+  color: #ffc0cb;
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+
+.form-label {
+  display: block;
+  color: #e1bbc2;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  background-color: #51465a;
+  border: 1px solid #e1bbc2;
+  color: #fff;
+  border-radius: 5px;
+  width: 100%;
+  padding: 0.5rem;
+}
+
+.update-button {
+  background-color: #b3888d;
+  color: white;
+  padding: 0.7rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.success-message {
+  color: green;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.create-campaign-container {
+  background: url("./assets/background.png") no-repeat center center fixed;
+  background-size: cover;
+  min-height: 100vh;
+  padding: 6rem 2rem 2rem;
+  text-align: center;
+}
+
+.create-campaign-card {
+  background-color: #3e3644;
+  border-radius: 10px;
+  padding: 2rem;
+  max-width: 600px;
+  margin: auto;
+  border: 1px solid #444;
+}
+
+.create-campaign-title {
+  color: #ffc0cb;
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+
+.form-label {
+  display: block;
+  color: #e1bbc2;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  background-color: #51465a;
+  border: 1px solid #e1bbc2;
+  color: #fff;
+  border-radius: 5px;
+  width: 100%;
+  padding: 0.5rem;
+}
+
+.create-button {
+  background-color: #b3888d;
+  color: white;
+  padding: 0.7rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.success-message {
+  color: green;
+  margin-top: 1rem;
+  font-weight: bold;
+}

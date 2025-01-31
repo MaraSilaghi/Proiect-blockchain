@@ -9,22 +9,33 @@ import {
 import { ethers } from "ethers";
 import { Link } from "react-router-dom";
 import Web3 from "web3";
+import "../index.css";
 
 const web3 = new Web3(window.ethereum);
 
 
 const CROWDFUNDING_CONTRACT_ADDRESS = "0xee4bc32b70DB3df04974D379319F937D7376D8Ce";
+const COMMISSION_MANAGER_CONTRACT_ADDRESS = "0xcc18199880857880365C71831c8e8e9048238000";
 
 export function CampaignList() {
   const { contract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
   const { data: campaigns, isLoading, error } = useContractRead(contract, "getCampaigns");
   const { mutateAsync: donateToCampaign } = useContractWrite(contract, "donateToCampaign");
   const { mutateAsync: deleteCampaign } = useContractWrite(contract, "deleteCampaign");
+
+  const { contract: commissionContract } = useContract(COMMISSION_MANAGER_CONTRACT_ADDRESS);
+  const { data: totalCollected, isLoading: isCommissionLoading } = useContractRead(commissionContract, "totalCollected");
+  const { data: adminAddress } = useContractRead(commissionContract, "admin");
+  const { mutateAsync: withdrawCommissions } = useContractWrite(commissionContract, "withdrawCommissions");
+
   const address = useAddress();
 
   const [donationAmounts, setDonationAmounts] = useState<{ [key: number]: string }>({});
   const [messages, setMessages] = useState<{ [key: number]: string }>({});
 
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawMessage, setWithdrawMessage] = useState("");
+ 
   if (isLoading) {
     return <div>Loading campaigns...</div>;
   }
@@ -240,35 +251,78 @@ export function CampaignList() {
   };
   
   
+  const handleWithdraw = async () => {
+    try {
+      if (!address) {
+        setWithdrawMessage("You need to connect your wallet.");
+        return;
+      }
+  
+      if (!commissionContract) {
+        setWithdrawMessage("Contract not loaded. Please try again later.");
+        return;
+      }
+  
+      const amountInWei = ethers.utils.parseEther(withdrawAmount);
+  
+      if (amountInWei.lte(0)) {
+        setWithdrawMessage("Amount must be greater than 0.");
+        return;
+      }
+  
+      if (amountInWei.gt(totalCollected)) {
+        setWithdrawMessage("Not enough funds available.");
+        return;
+      }
+
+      const data = commissionContract.encoder.encode("withdrawCommissions", [address, amountInWei]);
+      
+      const transaction = {
+        from: address,
+        to: COMMISSION_MANAGER_CONTRACT_ADDRESS,
+        data: data,
+      };
+  
+      const estimatedGas = await web3.eth.estimateGas(transaction);
+      const gasPrice = await web3.eth.getGasPrice();
+      
+      const estimatedGasCostInEth = web3.utils.fromWei(
+        (BigInt(estimatedGas) * BigInt(gasPrice)).toString(),
+        "ether"
+      );
+  
+      const maxGasCost = 0.01; 
+  
+      if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
+        setWithdrawMessage(`Gas cost too high: ${estimatedGasCostInEth} ETH. Transaction not allowed.`);
+        return;
+      }
+  
+      setWithdrawMessage(`Transaction allowed! Estimated gas cost: ${estimatedGasCostInEth} ETH.`);
+  
+      await withdrawCommissions({ args: [address, amountInWei] });
+  
+      setWithdrawMessage(`Successfully withdrew ${withdrawAmount} ETH.`);
+      setWithdrawAmount("");
+    } catch (error) {
+      console.error("Failed to withdraw commissions:", error);
+      
+      setWithdrawMessage("Something went wrong. Please try again.");
+    }
+  };
+  
   
   
 
   return (
-    <div
-      style={{
-        backgroundImage: `url(${backgroundImg})`,
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        backgroundPosition: "center",
-        height: "100%",
-        minHeight: "100vh",
-        width: "100%", 
-        margin: 0,
-        padding: 0, 
-        position: "relative", 
-      }}
-    >
+    <div className="campaigns-container" style={{ backgroundImage: `url(${backgroundImg})`}}>
       <div
         style={{
-          padding: "6rem 2rem",
+          padding: "6rem 2rem 2rem 2rem",
           textAlign: "center",
         }}
       >
-        <h2
-          className="text-4xl font-bold"
-          style={{ color: "#ffc0cb", fontSize:"50px", marginTop:"-50px", marginBottom:"50px"}}
-        >
+        <h2 className="campaigns-title">
           Our Campaigns
         </h2>
         {validCampaigns?.length === 0 && <p>No campaigns found.</p>}
@@ -278,29 +332,12 @@ export function CampaignList() {
           const progress = (Number(collectedInEth) / Number(targetInEth)) * 100; 
   
           return (
-            <div
-              key={filteredIndex}
-              style={{
-                margin: "1rem auto",
-                border: "1px solid #444",
-                padding: "1rem",
-                backgroundColor:"#3e3644",
-                borderRadius: "10px",
-                maxWidth: "600px", 
-              }}
-            >
+            <div className="campaign-card">
               <h3 style={{fontSize:"25px", color:"#ffc0cb", fontWeight:"500"}}>{campaign.title}</h3>
               <p style={{color:"#e1bbc2"}}>{campaign.description}</p>
-              <img
+              <img className="campaign-image"
                 src={campaign.image || "https://via.placeholder.com/200"}
                 alt={campaign.title}
-                style={{
-                  maxWidth: "100%",
-                  marginBottom: "1rem",
-                  marginTop: "1rem",
-                  display: "block",
-                  borderRadius: "8px",
-                }}
               />
               <p style={{color:"#e1bbc2"}}>
                 <strong>Owner:</strong> {campaign.owner}
@@ -315,14 +352,7 @@ export function CampaignList() {
                 <strong>Amount Collected:</strong> {collectedInEth} ETH
               </p>
   
-              <div
-                style={{
-                  background: "#e0e0e0",
-                  borderRadius: "5px",
-                  overflow: "hidden",
-                  margin: "1rem 0",
-                }}
-              >
+              <div className="progress-bar">
                 <div
                   style={{
                     width: `${Math.min(progress, 100)}%`,
@@ -378,7 +408,7 @@ export function CampaignList() {
               {address === campaign.owner && (
                 <div style={{ marginTop: "1rem" }}>
                   <Link
-                    to={`/edit-campaign/${filteredIndex}`}
+                    to={`/edit-campaign/${filteredIndex}`} 
                     style={{
                       marginLeft: "1rem",
                       color: "white",
@@ -392,7 +422,7 @@ export function CampaignList() {
                     Edit Campaign
                   </Link>
                   <button
-                    onClick={() => handleDelete(filteredIndex)}
+                    onClick={() => handleDelete(filteredIndex)} 
                     style={{
                       marginLeft: "1rem",
                       color: "white",
@@ -410,6 +440,52 @@ export function CampaignList() {
             </div>
           );
         })}
+        {
+        address?.toLowerCase() === adminAddress?.toLowerCase() && (
+
+  <div style={{
+    marginTop: "2rem",
+    padding: "1rem",
+    borderRadius: "10px",
+    backgroundColor: "#4a3c56",
+    maxWidth: "500px",
+    margin: "auto",
+    textAlign: "center",
+  }}>
+    <h3 style={{ color: "#ffc0cb" }}>Commission Management</h3>
+    {isCommissionLoading ? (
+      <p>Loading commission data...</p>
+    ) : (
+      <p style={{ color: "#e1bbc2" }}>
+        <strong>Total Collected Commissions:</strong> {ethers.utils.formatEther(totalCollected || "0")} ETH
+      </p>
+    )}
+    <input
+      type="number"
+      step="0.01"
+      placeholder="Amount to withdraw (ETH)"
+      value={withdrawAmount}
+      onChange={(e) => setWithdrawAmount(e.target.value)}
+      style={{
+        backgroundColor: "#51465a",
+        border: "1px solid #e1bbc2",
+        color: "#fff",
+        borderRadius: "5px",
+        width: "100%",
+        padding: "0.5rem",
+        marginTop: "1rem",
+      }}
+    />
+    <button className="withdraw-button"  onClick={handleWithdraw}>
+      Withdraw Commissions
+    </button>
+    {withdrawMessage && (
+      <p style={{ marginTop: "1rem", color: withdrawMessage.includes("Successfully") ||  withdrawMessage.includes("Transaction allowed") ? "green" : "red" }}>
+        {withdrawMessage}
+      </p>
+    )}
+  </div>
+)}
       </div>
     </div>
   );
