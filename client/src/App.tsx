@@ -5,7 +5,8 @@ import backgroundImg from "./assets/background.png";
 import { CampaignList } from "./pages/CampaignList";
 import { CreateCampaignForm } from "./pages/CreateCampaignForm";
 import { EditCampaign } from "./pages/EditCampaign";
-import { MyEventsSubscriber } from "./MyEventsSubscriber";
+import { MyEventsSubscriber } from "./eventListeners/MyEventsSubscriber";
+import { CommissionEventsSubscriber } from "./eventListeners/CommissionEventsSubscriber";
 
 
 export function App() {
@@ -47,6 +48,7 @@ export function App() {
             <Route path="/edit-campaign/:id" element={<EditCampaign />} />
           </Routes>
           <MyEventsSubscriber />
+          <CommissionEventsSubscriber />
         </main>
       </div>
     </BrowserRouter>

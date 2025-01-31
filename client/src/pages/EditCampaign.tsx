@@ -9,6 +9,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import Web3 from "web3";
+import "../index.css";
 
 const web3 = new Web3(window.ethereum);
 
@@ -203,45 +204,18 @@ export function EditCampaign() {
   
 
   return (
-    <div
+    <div className="edit-campaign-container"
       style={{
         backgroundImage: `url(${backgroundImg})`,
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        backgroundPosition: "center",
-        height: "100%",
-        minHeight: "100vh",
-        width: "100%",
-        margin: 0,
-        padding: 0,
-        position: "relative",
       }}
     >
       <div
         style={{
-          padding: "6rem 2rem",
           textAlign: "center",
         }}
       >
-        <div
-          style={{
-            margin: "0 auto",
-            border: "1px solid #444",
-            padding: "2rem",
-            backgroundColor: "#3e3644",
-            borderRadius: "10px",
-            maxWidth: "600px",
-          }}
-        >
-          <h2
-            style={{
-              color: "#ffc0cb",
-              fontSize: "30px",
-              marginBottom: "30px",
-              fontWeight: "600",
-            }}
-          >
+        <div className="edit-campaign-card">
+        <h2 className="edit-campaign-title">
             Edit Campaign
           </h2>
 
@@ -251,13 +225,7 @@ export function EditCampaign() {
           >
 
             <div style={{ width: "100%" }}>
-              <label
-                style={{
-                  display: "block",
-                  color: "#e1bbc2",
-                  marginBottom: "0.5rem",
-                }}
-              >
+            <label className="form-label">
                 Title:
               </label>
               <input
@@ -265,14 +233,7 @@ export function EditCampaign() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                style={{
-                  backgroundColor: "#51465a",
-                  border: "1px solid #e1bbc2",
-                  color: "#fff",
-                  borderRadius: "5px",
-                  width: "100%",
-                  padding: "0.5rem",
-                }}
+                className="form-input"
               />
             </div>
 
@@ -290,14 +251,7 @@ export function EditCampaign() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
-                style={{
-                  backgroundColor: "#51465a",
-                  border: "1px solid #e1bbc2",
-                  color: "#fff",
-                  borderRadius: "5px",
-                  width: "100%",
-                  padding: "0.5rem",
-                }}
+                className="form-input"
               />
             </div>
 
@@ -384,32 +338,20 @@ export function EditCampaign() {
             <button
               type="submit"
               disabled={isEditing}
-              style={{
-                backgroundColor: "#b3888d",
-                color: "#fff",
-                padding: "0.7rem",
-                borderRadius: "5px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                width: "100%",
-              }}
+              className="update-button"
             >
               {isEditing ? "Updating..." : "Update Campaign"}
             </button>
           </form>
 
           {errorMessage && (
-            <div
-              style={{ color: "red", marginTop: "1rem", fontWeight: "bold" }}
-            >
+            <div className="error-message">
               {errorMessage}
             </div>
           )}
 
           {successMessage && (
-            <div
-              style={{ color: "green", marginTop: "1rem", fontWeight: "bold" }}
-            >
+            <div className="success-message">
               {successMessage}
             </div>
           )}

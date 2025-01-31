@@ -47,8 +47,7 @@ export function useCrowdfundingEvents(
     const handleDonation = (event: any) => {
       const { campaignId, donator, amount, donatorShare } = event.data;
       window.alert(
-        `EventListener: DonationReceived => campaignId=${campaignId.toString()} | donator=${donator} | amount=${amount.toString()} | donatorShare=${donatorShare.toString()}`
-      );
+        `EventListener: DonationReceived => campaignId=${campaignId.toString()} | donator=${donator}`);
       onDonation?.({ campaignId, donator, amount, donatorShare });
     };
 
