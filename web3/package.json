@@ -20,6 +20,7 @@
     "@thirdweb-dev/contracts": "^3.8.0",
     "chai": "^4.3.4",
     "dotenv": "^16.4.7",
+    "thirdweb": "^5.87.2",
     "zksync-web3": "^0.17.1"
   }
 }

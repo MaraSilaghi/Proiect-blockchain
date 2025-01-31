@@ -1,32 +1,30 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("Crowdfunding", function () {
-    async function deployContractsFixture() {
-        const [owner, donor1, donor2, otherAccount] = await ethers.getSigners();
-      
-        const CommissionManager = await ethers.getContractFactory("CommissionManager");
-        const commissionManager = await CommissionManager.deploy();
-        await commissionManager.waitForDeployment();
-      
-        const Crowdfunding = await ethers.getContractFactory("Crowdfunding");
-        const crowdfunding = await Crowdfunding.deploy();
-        await crowdfunding.waitForDeployment();
+  async function deployContractsFixture() {
+    const [owner, donor1, donor2, otherAccount] = await ethers.getSigners();
 
-        await crowdfunding.initialize(commissionManager.target);
-      
-        await crowdfunding.createCampaign(
-          owner.address,
-          "Test Campaign",
-          "Description",
-          ethers.parseEther("10.0"), // Target: 10 ETH
-          Math.floor(Date.now() / 1000) + 24 * 60 * 60, // Deadline: 24 hours from now
-          "imageUrl"
-        );
-        const campaignId = 0;
-        return { crowdfunding, commissionManager, owner, donor1, donor2, otherAccount, campaignId };
-      }
+    const CommissionManager = await ethers.getContractFactory("CommissionManager");
+    const commissionManager = await CommissionManager.deploy();
+    await commissionManager.waitForDeployment();
+
+    const Crowdfunding = await ethers.getContractFactory("Crowdfunding");
+
+    // Deploying the contract through a proxy
+    const crowdfunding = await upgrades.deployProxy(Crowdfunding, [commissionManager.target], { initializer: "initialize" });
+    await crowdfunding.createCampaign(
+      owner.address,
+      "Test Campaign",
+      "Description",
+      ethers.parseEther("10.0"), // Target: 10 ETH
+      Math.floor(Date.now() / 1000) + 24 * 60 * 60, // Deadline: 24 hours from now
+      "imageUrl"
+    );
+    const campaignId = 0;
+    return { crowdfunding, commissionManager, owner, donor1, donor2, otherAccount, campaignId };
+  }
 
   describe("Create campaign", function () {
     it("Should create a campaign", async function () {
