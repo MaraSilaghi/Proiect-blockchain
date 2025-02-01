@@ -5,10 +5,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./libraries/CrowdfundingUtils.sol";
 import "./CommissionManager.sol";
 
-contract Crowdfunding is
+contract CrowdfundingV3 is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -21,14 +22,17 @@ contract Crowdfunding is
         uint256 target;
         uint256 deadline;
         uint256 amountCollected;
-        string image;
+        string imageIPFSHash;
         address[] donators;
         uint256[] donations;
+        uint256 targetInUSD;
     }
 
     mapping(uint256 => Campaign) public campaigns;
     uint256 public numberOfCampaigns;
+
     ICommissionManager public commissionManager;
+    address public priceFeedAddress;
 
     event CampaignCreated(uint256 id, address owner, string title);
     event CampaignEdited(uint256 id, string newTitle, string newDescription);
@@ -51,11 +55,15 @@ contract Crowdfunding is
         _disableInitializers(); // Prevents direct deployment, only proxy allowed
     }
 
-    function initialize(address payable _commissionManager) public initializer {
+    function initialize(
+        address payable _commissionManager,
+        address _priceFeedAddress
+    ) public initializer {
         __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
         commissionManager = ICommissionManager(_commissionManager);
+        priceFeedAddress = _priceFeedAddress;
         numberOfCampaigns = 0;
     }
 
@@ -67,20 +75,22 @@ contract Crowdfunding is
         address _owner,
         string memory _title,
         string memory _description,
-        uint256 _target,
+        uint256 _targetInUSD,
         uint256 _deadline,
-        string memory _image
+        string memory _imageIPFSHash
     ) public returns (uint256) {
         require(_deadline > block.timestamp, "Deadline must be in the future.");
 
         Campaign storage campaign = campaigns[numberOfCampaigns];
+        uint256 targetInETH = convertUSDtoETH(_targetInUSD);
         campaign.owner = _owner;
         campaign.title = _title;
         campaign.description = _description;
-        campaign.target = _target;
+        campaign.targetInUSD = _targetInUSD;
+        campaign.target = targetInETH;
         campaign.deadline = _deadline;
         campaign.amountCollected = 0;
-        campaign.image = _image;
+        campaign.imageIPFSHash = _imageIPFSHash;
 
         numberOfCampaigns++;
         emit CampaignCreated(numberOfCampaigns - 1, _owner, _title);
@@ -172,5 +182,18 @@ contract Crowdfunding is
             allCampaigns[i] = campaigns[i];
         }
         return allCampaigns;
+    }
+
+    function convertUSDtoETH(
+        uint256 _usdAmount
+    ) internal view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            priceFeedAddress
+        );
+        (, int ethPrice, , , ) = priceFeed.latestRoundData();
+        require(ethPrice > 0, "Invalid ETH price");
+
+        uint256 ethAmount = (_usdAmount * 10 ** 8) / uint256(ethPrice);
+        return ethAmount;
     }
 }

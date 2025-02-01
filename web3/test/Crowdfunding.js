@@ -10,15 +10,19 @@ describe("Crowdfunding", function () {
     const commissionManager = await CommissionManager.deploy();
     await commissionManager.waitForDeployment();
 
+    const MockPriceFeed = await ethers.getContractFactory("MockPriceFeed");
+    const mockPriceFeed = await MockPriceFeed.deploy(2000 * 10 ** 8, 8); // Mock price: $2000 per ETH, 8 decimals
+    await mockPriceFeed.waitForDeployment();
+
     const Crowdfunding = await ethers.getContractFactory("Crowdfunding");
 
     // Deploying the contract through a proxy
-    const crowdfunding = await upgrades.deployProxy(Crowdfunding, [commissionManager.target], { initializer: "initialize" });
+    const crowdfunding = await upgrades.deployProxy(Crowdfunding, [commissionManager.target, mockPriceFeed.target], { initializer: "initialize" });
     await crowdfunding.createCampaign(
       owner.address,
       "Test Campaign",
       "Description",
-      ethers.parseEther("10.0"), // Target: 10 ETH
+      ethers.parseEther("20000"), // Target: 20000 USD = 10 ETH
       Math.floor(Date.now() / 1000) + 24 * 60 * 60, // Deadline: 24 hours from now
       "imageUrl"
     );
@@ -27,7 +31,7 @@ describe("Crowdfunding", function () {
   }
 
   describe("Create campaign", function () {
-    it("Should create a campaign", async function () {
+    it("Should create a campaign with correct target in ETH", async function () {
       const { crowdfunding, campaignId, owner } = await loadFixture(deployContractsFixture);
 
       const campaign = await crowdfunding.campaigns(campaignId);
