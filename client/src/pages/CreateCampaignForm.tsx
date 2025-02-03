@@ -57,7 +57,7 @@ export function CreateCampaignForm() {
 
     try {
       const targetUsdValue = Number(targetUSD);
-      console.log("Target in USD (to be converted in contract):", targetUsdValue);
+      console.log("Target in USD:", targetUsdValue);
       
 
       console.log("Target USD as BigNumber:", targetUsdValue.toString());
