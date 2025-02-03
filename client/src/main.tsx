@@ -10,7 +10,7 @@ const clientId = import.meta.env.VITE_CLIENT_ID;
 const sepoliaWithCustomRPC = {
   chainId: 11155111,
   rpc: [
-    "https://sepolia.infura.io/v3/1e7b6cdfd53c4448abb2eb921be9f7d2",
+    "https://eth-sepolia.g.alchemy.com/v2/9l-9vo3wJgiZaerJ3luGULCn0U8lbdPt",
   ],
   nativeCurrency: {
     name: "Sepolia ETH",
@@ -23,14 +23,14 @@ const sepoliaWithCustomRPC = {
   name: "Sepolia",
   testnet: true,
 };
-
+console.log("Client ID:", clientId);
 createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  //<React.StrictMode>
     <ThirdwebProvider
       activeChain={sepoliaWithCustomRPC}
       clientId={clientId}
     >
       <App />
     </ThirdwebProvider>
-  </React.StrictMode>
+  //</React.StrictMode>
 );

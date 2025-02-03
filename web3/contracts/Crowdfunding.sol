@@ -1,33 +1,34 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "@thirdweb-dev/contracts/extension/Initializable.sol";
+import "@thirdweb-dev/contracts/extension/Upgradeable.sol";
+import "@thirdweb-dev/contracts/extension/Ownable.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "./libraries/CrowdfundingUtils.sol";
 import "./CommissionManager.sol";
 
-contract Crowdfunding {
+contract Crowdfunding is Initializable, Upgradeable, Ownable {
     struct Campaign {
         address owner;
         string title;
         string description;
-        uint256 target;
+        uint256 targetInUSD;
         uint256 deadline;
         uint256 amountCollected;
-        string image;
+        string imageIPFSHash;
         address[] donators;
         uint256[] donations;
     }
 
     mapping(uint256 => Campaign) public campaigns;
-    uint256 public numberOfCampaigns = 0;
+    uint256 public numberOfCampaigns;
 
-    CommissionManager public commissionManager;
-
-    constructor(address payable _commissionManager) {
-        commissionManager = CommissionManager(_commissionManager);
-    }
+    ICommissionManager public commissionManager;
+    address public priceFeedAddress;
 
     event CampaignCreated(uint256 id, address owner, string title);
     event CampaignEdited(uint256 id, string newTitle, string newDescription);
-    event CampaignDeleted(uint256 id, address owner);
     event DonationReceived(
         uint256 campaignId,
         address donator,
@@ -37,33 +38,47 @@ contract Crowdfunding {
     event RemainingAmountToRaise(uint256 campaignId, uint256 amount);
     event Withdrawal(uint256 campaignId, address owner, uint256 amount);
 
-    modifier onlyOwner(uint256 _id) {
+    modifier onlyOwnerOfCampaign(uint256 _id) {
         require(msg.sender == campaigns[_id].owner, "Not the campaign owner.");
         _;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
+
+    function _canSetOwner() internal view virtual override returns (bool) {
+        return msg.sender == owner() || owner() == address(0);
+    }
+
+    function initialize(
+        address payable _commissionManager,
+        address _priceFeedAddress
+    ) public initializer {
+        _setupOwner(msg.sender);
+        commissionManager = ICommissionManager(_commissionManager);
+        priceFeedAddress = _priceFeedAddress;
+        numberOfCampaigns = 0;
     }
 
     function createCampaign(
         address _owner,
         string memory _title,
         string memory _description,
-        uint256 _target,
+        uint256 _targetInUSD,
         uint256 _deadline,
-        string memory _image
+        string memory _imageIPFSHash
     ) public returns (uint256) {
+        require(_deadline > block.timestamp, "Deadline must be in the future.");
+
         Campaign storage campaign = campaigns[numberOfCampaigns];
-
-        require(
-            _deadline > block.timestamp,
-            "The deadline should be a date in the future."
-        );
-
         campaign.owner = _owner;
         campaign.title = _title;
         campaign.description = _description;
-        campaign.target = _target;
+        campaign.targetInUSD = _targetInUSD;
         campaign.deadline = _deadline;
         campaign.amountCollected = 0;
-        campaign.image = _image;
+        campaign.imageIPFSHash = _imageIPFSHash;
 
         numberOfCampaigns++;
         emit CampaignCreated(numberOfCampaigns - 1, _owner, _title);
@@ -73,71 +88,47 @@ contract Crowdfunding {
     function editCampaign(
         uint256 _id,
         string memory _newTitle,
-        string memory _newDescription,
-        uint256 _newTarget,
-        uint256 _newDeadline,
-        string memory _newImage
-    ) public onlyOwner(_id) {
+        string memory _newDescription
+    ) public onlyOwnerOfCampaign(_id) {
         Campaign storage campaign = campaigns[_id];
-
-        // Validate new deadline
         require(
-            _newDeadline > block.timestamp,
-            "The new deadline should be in the future."
+            CrowdfundingUtils.isCampaignActive(campaign.deadline),
+            "Campaign is no longer active."
         );
-
-        // Update the campaign data
         campaign.title = _newTitle;
         campaign.description = _newDescription;
-        campaign.target = _newTarget;
-        campaign.deadline = _newDeadline;
-        campaign.image = _newImage;
 
         emit CampaignEdited(_id, _newTitle, _newDescription);
     }
 
-    function deleteCampaign(uint256 _id) public onlyOwner(_id) {
-        Campaign storage campaign = campaigns[_id];
-
-        // Ensure that the campaign has not raised any funds
-        require(
-            campaign.amountCollected == 0,
-            "Cannot delete a campaign with collected funds."
-        );
-
-        // Delete the campaign
-        delete campaigns[_id];
-
-        emit CampaignDeleted(_id, msg.sender);
-    }
-
     function donateToCampaign(uint256 _id) public payable {
-        uint256 amount = msg.value;
-
         Campaign storage campaign = campaigns[_id];
         require(
-            isCampaignActive(campaign.deadline),
+            CrowdfundingUtils.isCampaignActive(campaign.deadline),
             "Campaign is no longer active."
         );
+        require(
+            campaign.amountCollected < convertUSDtoWEI(campaign.targetInUSD),
+            "Campaign target already reached."
+        );
 
-        uint256 commission = amount / 100; // 1% commission
+        uint256 amount = msg.value;
+        uint256 commission = CrowdfundingUtils.calculatePercentage(
+            amount,
+            commissionManager.getCommissionPercentage()
+        );
         uint256 remainingDonationAmount = amount - commission;
 
         campaign.amountCollected += remainingDonationAmount;
+        commissionManager.accumulate{value: commission}(commission);
 
         campaign.donators.push(msg.sender);
         campaign.donations.push(remainingDonationAmount);
 
-        uint256 donatorShare = calculateDonatorShare(
+        uint256 donatorShare = CrowdfundingUtils.calculateDonatorShare(
             remainingDonationAmount,
             campaign.amountCollected
         );
-
-        (bool commissionSent, ) = payable(address(commissionManager)).call{
-            value: commission
-        }("");
-        require(commissionSent, "Commission transfer failed.");
-
         emit DonationReceived(
             _id,
             msg.sender,
@@ -146,32 +137,30 @@ contract Crowdfunding {
         );
         emit RemainingAmountToRaise(
             _id,
-            calculateRemainingAmountToRaise(
-                campaign.target,
+            CrowdfundingUtils.calculateRemainingAmountToRaise(
+                convertUSDtoWEI(campaign.targetInUSD),
                 campaign.amountCollected
             )
         );
     }
 
-    function withdrawFunds(uint256 _id) public onlyOwner(_id) {
+    function withdrawFunds(uint256 _id) public onlyOwnerOfCampaign(_id) {
         Campaign storage campaign = campaigns[_id];
-
         require(
-            isCampaignActive(campaign.deadline) == false,
-            "Funds can only be withdrawn if the campaign deadline has passed."
+            CrowdfundingUtils.isCampaignActive(campaign.deadline) == false,
+            "Campaign is still active."
         );
 
-        (bool sent, ) = payable(campaign.owner).call{
-            value: campaign.amountCollected
-        }("");
+        uint256 amount = campaign.amountCollected;
+        campaign.amountCollected = 0;
 
-        if (sent) {
-            campaign.amountCollected = 0;
-            emit Withdrawal(_id, campaign.owner, campaign.amountCollected);
-        }
+        (bool sent, ) = payable(campaign.owner).call{value: amount}("");
+        require(sent, "Withdrawal failed.");
+
+        emit Withdrawal(_id, campaign.owner, amount);
     }
 
-    function getDonators(
+    function getDonatorsOfCampaign(
         uint256 _id
     ) public view returns (address[] memory, uint256[] memory) {
         return (campaigns[_id].donators, campaigns[_id].donations);
@@ -179,37 +168,30 @@ contract Crowdfunding {
 
     function getCampaigns() public view returns (Campaign[] memory) {
         Campaign[] memory allCampaigns = new Campaign[](numberOfCampaigns);
-
         for (uint i = 0; i < numberOfCampaigns; i++) {
-            Campaign storage item = campaigns[i];
-            allCampaigns[i] = item;
+            allCampaigns[i] = campaigns[i];
         }
-
         return allCampaigns;
     }
 
-    function isCampaignActive(uint256 _deadline) public view returns (bool) {
-        return block.timestamp < _deadline;
-    }
-
-    function calculateRemainingAmountToRaise(
-        uint256 _target,
-        uint256 _amountCollected
-    ) public pure returns (uint256) {
-        if (_amountCollected >= _target) {
-            return 0;
-        }
-        return _target - _amountCollected;
-    }
-
-    function calculateDonatorShare(
-        uint256 _amountDonated,
-        uint256 _amountCollected
-    ) public pure returns (uint256) {
-        require(
-            _amountCollected > 0,
-            "Total amount collected for a campaign must be greater than zero."
+    function convertUSDtoWEI(uint256 _usdAmount) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            priceFeedAddress
         );
-        return (_amountDonated * 100) / _amountCollected;
+        (, int256 ethPrice, , , ) = priceFeed.latestRoundData();
+        require(ethPrice > 0, "Invalid ETH price");
+
+        uint256 ethPriceScaled = uint256(ethPrice);
+        uint256 weiAmount = (_usdAmount * 1e18 * 10 ** 8) / ethPriceScaled;
+
+        return weiAmount;
+    }
+
+    function getPriceFeedAddress() public view returns (address) {
+        return priceFeedAddress;
+    }
+
+    function testConversion(uint256 usdAmount) public view returns (uint256) {
+        return convertUSDtoWEI(usdAmount);
     }
 }
