@@ -7,7 +7,7 @@ describe("Crowdfunding", function () {
     const [owner, donor1, donor2, otherAccount] = await ethers.getSigners();
 
     const CommissionManager = await ethers.getContractFactory("CommissionManager");
-    const commissionManager = await CommissionManager.deploy();
+    const commissionManager = await CommissionManager.deploy(owner.address);
     await commissionManager.waitForDeployment();
 
     const MockPriceFeed = await ethers.getContractFactory("MockPriceFeed");

@@ -7,7 +7,7 @@ describe("CommissionManager", function () {
     const [owner, addr1] = await ethers.getSigners();
 
     const CommissionManager = await ethers.getContractFactory("CommissionManager");
-    const commissionManager = await CommissionManager.deploy();
+    const commissionManager = await CommissionManager.deploy(owner.address);
     await commissionManager.waitForDeployment(); 
 
     return { commissionManager, owner, addr1 };
