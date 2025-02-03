@@ -56,8 +56,8 @@ export function CreateCampaignForm() {
     setSuccessMessage(null);
 
     try {
-      const targetUsdValue = await contract.call("convertUSDtoWEI", [Number(targetUSD)]);
-      console.log("Target in WEI:", targetUsdValue.toString());
+      const targetUsdValue = Number(targetUSD);
+      console.log("Target in USD (to be converted in contract):", targetUsdValue);
       
 
       console.log("Target USD as BigNumber:", targetUsdValue.toString());
