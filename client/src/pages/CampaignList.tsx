@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import backgroundImg from "../assets/background.png";
-import { useContract, useContractWrite, useAddress } from "@thirdweb-dev/react";
+import { useContract, useContractWrite, useAddress  } from "@thirdweb-dev/react";
 import { ethers } from "ethers";
 import { Link } from "react-router-dom";
 import Web3 from "web3";
@@ -41,14 +41,32 @@ export function CampaignList() {
   useEffect(() => {
     if (!crowdfundingContract) return;
 
-    async function fetchCampaigns() {
+    const fetchCampaigns = async () => {
       try {
         setIsCampaignsLoading(true);
         setCampaignsError(null);
 
         if (!crowdfundingContract) return;
         const result = await crowdfundingContract.call("getCampaigns");
-        setCampaigns(result);
+         // Fetch target in ETH for each campaign
+        const updatedCampaigns = await Promise.all(
+        result.map(async (campaign: any) => {
+          const targetInUSD = ethers.BigNumber.from(campaign.targetInUSD);
+          const targetInETH = await crowdfundingContract.call("convertUSDtoWEI", [targetInUSD]);
+          const targetInETHRescaled = ethers.utils.formatEther(targetInETH);
+          const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
+          const progress = (Number(collectedInEth) / targetInETH) * 100;
+          console.log("Progress:", progress, "Target in ETH:", targetInETHRescaled, "Collected in ETH:", collectedInEth);
+
+          return {
+            ...campaign,
+            targetInETH: targetInETHRescaled, // Target in ETH
+            progress
+          };
+        })
+      );
+
+        setCampaigns(updatedCampaigns);
       } catch (err) {
         console.error("Error reading campaigns:", err);
         setCampaignsError("Failed to load campaigns");
@@ -131,7 +149,7 @@ export function CampaignList() {
         return;
       }
 
-      const targetInEth = ethers.utils.formatEther(campaignToDonate.target.toString());
+      const targetInEth = campaignToDonate.targetInETH;
       const collectedInEth = ethers.utils.formatEther(campaignToDonate.amountCollected.toString());
       const progress = (Number(collectedInEth) / Number(targetInEth)) * 100;
       if (progress >= 100) {
@@ -261,9 +279,9 @@ export function CampaignList() {
 
         {validCampaigns.map((campaign: any, filteredIndex: number) => {
           const imageHash = campaign.imageIPFSHash || "";
-          const targetInEth = (Number(campaign.target) / 10 ** 18).toFixed(6); 
+          const targetInUSD = Number(campaign.targetInUSD);
           const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
-          const progress = (Number(collectedInEth) / Number(targetInEth)) * 100;
+          const progress = (Number(collectedInEth) / Number(campaign.targetInETH)) * 100;
 
           return (
             <div className="campaign-card" key={filteredIndex}>
@@ -280,7 +298,10 @@ export function CampaignList() {
                 <strong>Owner:</strong> {campaign.owner}
               </p>
               <p style={{ color: "#e1bbc2" }}>
-                <strong>Target:</strong> {targetInEth} ETH
+                <strong>Target:</strong> {targetInUSD} USD
+              </p>
+              <p style={{ color: "#e1bbc2" }}>
+                <strong>Target in ETH:</strong> {campaign.targetInETH} ETH
               </p>
               <p style={{ color: "#e1bbc2" }}>
                 <strong>Deadline:</strong> {new Date(campaign.deadline * 1000).toLocaleDateString()}
