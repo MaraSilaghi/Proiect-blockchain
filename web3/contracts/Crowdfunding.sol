@@ -13,13 +13,12 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         address owner;
         string title;
         string description;
-        uint256 target;
+        uint256 targetInUSD;
         uint256 deadline;
         uint256 amountCollected;
         string imageIPFSHash;
         address[] donators;
         uint256[] donations;
-        uint256 targetInUSD;
     }
 
     mapping(uint256 => Campaign) public campaigns;
@@ -30,7 +29,12 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
 
     event CampaignCreated(uint256 id, address owner, string title);
     event CampaignEdited(uint256 id, string newTitle, string newDescription);
-    event DonationReceived(uint256 campaignId, address donator, uint256 amount, uint256 donatorShare);
+    event DonationReceived(
+        uint256 campaignId,
+        address donator,
+        uint256 amount,
+        uint256 donatorShare
+    );
     event RemainingAmountToRaise(uint256 campaignId, uint256 amount);
     event Withdrawal(uint256 campaignId, address owner, uint256 amount);
 
@@ -39,21 +43,23 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         _;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     function _canSetOwner() internal view virtual override returns (bool) {
-    return msg.sender == owner() || owner() == address(0);
-}
+        return msg.sender == owner() || owner() == address(0);
+    }
 
-   function initialize(
-    address payable _commissionManager,
-    address _priceFeedAddress
+    function initialize(
+        address payable _commissionManager,
+        address _priceFeedAddress
     ) public initializer {
-    _setupOwner(msg.sender);  
-    commissionManager = ICommissionManager(_commissionManager);
-    priceFeedAddress = _priceFeedAddress;
-    numberOfCampaigns = 0;
-    } 
+        _setupOwner(msg.sender);
+        commissionManager = ICommissionManager(_commissionManager);
+        priceFeedAddress = _priceFeedAddress;
+        numberOfCampaigns = 0;
+    }
 
     function createCampaign(
         address _owner,
@@ -66,12 +72,10 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         require(_deadline > block.timestamp, "Deadline must be in the future.");
 
         Campaign storage campaign = campaigns[numberOfCampaigns];
-        uint256 targetInETH = convertUSDtoWEI(_targetInUSD);
         campaign.owner = _owner;
         campaign.title = _title;
         campaign.description = _description;
         campaign.targetInUSD = _targetInUSD;
-        campaign.target = targetInETH;
         campaign.deadline = _deadline;
         campaign.amountCollected = 0;
         campaign.imageIPFSHash = _imageIPFSHash;
@@ -81,9 +85,16 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         return numberOfCampaigns - 1;
     }
 
-    function editCampaign(uint256 _id, string memory _newTitle, string memory _newDescription) public onlyOwnerOfCampaign(_id) {
+    function editCampaign(
+        uint256 _id,
+        string memory _newTitle,
+        string memory _newDescription
+    ) public onlyOwnerOfCampaign(_id) {
         Campaign storage campaign = campaigns[_id];
-        require(CrowdfundingUtils.isCampaignActive(campaign.deadline), "Campaign is no longer active.");
+        require(
+            CrowdfundingUtils.isCampaignActive(campaign.deadline),
+            "Campaign is no longer active."
+        );
         campaign.title = _newTitle;
         campaign.description = _newDescription;
 
@@ -92,10 +103,20 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
 
     function donateToCampaign(uint256 _id) public payable {
         Campaign storage campaign = campaigns[_id];
-        require(CrowdfundingUtils.isCampaignActive(campaign.deadline), "Campaign is no longer active.");
+        require(
+            CrowdfundingUtils.isCampaignActive(campaign.deadline),
+            "Campaign is no longer active."
+        );
+        require(
+            campaign.amountCollected < convertUSDtoWEI(campaign.targetInUSD),
+            "Campaign target already reached."
+        );
 
         uint256 amount = msg.value;
-        uint256 commission = CrowdfundingUtils.calculatePercentage(amount, commissionManager.getCommissionPercentage());
+        uint256 commission = CrowdfundingUtils.calculatePercentage(
+            amount,
+            commissionManager.getCommissionPercentage()
+        );
         uint256 remainingDonationAmount = amount - commission;
 
         campaign.amountCollected += remainingDonationAmount;
@@ -104,14 +125,31 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         campaign.donators.push(msg.sender);
         campaign.donations.push(remainingDonationAmount);
 
-        uint256 donatorShare = CrowdfundingUtils.calculateDonatorShare(remainingDonationAmount, campaign.amountCollected);
-        emit DonationReceived(_id, msg.sender, remainingDonationAmount, donatorShare);
-        emit RemainingAmountToRaise(_id, CrowdfundingUtils.calculateRemainingAmountToRaise(campaign.target, campaign.amountCollected));
+        uint256 donatorShare = CrowdfundingUtils.calculateDonatorShare(
+            remainingDonationAmount,
+            campaign.amountCollected
+        );
+        emit DonationReceived(
+            _id,
+            msg.sender,
+            remainingDonationAmount,
+            donatorShare
+        );
+        emit RemainingAmountToRaise(
+            _id,
+            CrowdfundingUtils.calculateRemainingAmountToRaise(
+                convertUSDtoWEI(campaign.targetInUSD),
+                campaign.amountCollected
+            )
+        );
     }
 
     function withdrawFunds(uint256 _id) public onlyOwnerOfCampaign(_id) {
         Campaign storage campaign = campaigns[_id];
-        require(CrowdfundingUtils.isCampaignActive(campaign.deadline) == false, "Campaign is still active.");
+        require(
+            CrowdfundingUtils.isCampaignActive(campaign.deadline) == false,
+            "Campaign is still active."
+        );
 
         uint256 amount = campaign.amountCollected;
         campaign.amountCollected = 0;
@@ -122,7 +160,9 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         emit Withdrawal(_id, campaign.owner, amount);
     }
 
-    function getDonatorsOfCampaign(uint256 _id) public view returns (address[] memory, uint256[] memory) {
+    function getDonatorsOfCampaign(
+        uint256 _id
+    ) public view returns (address[] memory, uint256[] memory) {
         return (campaigns[_id].donators, campaigns[_id].donations);
     }
 
@@ -134,24 +174,24 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         return allCampaigns;
     }
 
- function convertUSDtoWEI(uint256 _usdAmount) public view returns (uint256) {
-    AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeedAddress);
-    (, int256 ethPrice, , , ) = priceFeed.latestRoundData();
-    require(ethPrice > 0, "Invalid ETH price");
+    function convertUSDtoWEI(uint256 _usdAmount) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            priceFeedAddress
+        );
+        (, int256 ethPrice, , , ) = priceFeed.latestRoundData();
+        require(ethPrice > 0, "Invalid ETH price");
 
-    uint256 ethPriceScaled = uint256(ethPrice); 
+        uint256 ethPriceScaled = uint256(ethPrice);
+        uint256 weiAmount = (_usdAmount * 1e18 * 10 ** 8) / ethPriceScaled;
 
-    uint256 weiAmount = (_usdAmount * (10**18) * (10**8)) / ethPriceScaled;
+        return weiAmount;
+    }
 
-    return weiAmount; 
-}
+    function getPriceFeedAddress() public view returns (address) {
+        return priceFeedAddress;
+    }
 
-
-   function getPriceFeedAddress() public view returns (address) {
-    return priceFeedAddress;
-}
-
-   function testConversion(uint256 usdAmount) public view returns (uint256) {
-    return convertUSDtoWEI(usdAmount);
-}
+    function testConversion(uint256 usdAmount) public view returns (uint256) {
+        return convertUSDtoWEI(usdAmount);
+    }
 }

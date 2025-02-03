@@ -22,7 +22,7 @@ describe("Crowdfunding", function () {
       owner.address,
       "Test Campaign",
       "Description",
-      ethers.parseEther("20000"), // Target: 20000 USD = 10 ETH
+      2000, // Target: 2000 USD
       Math.floor(Date.now() / 1000) + 24 * 60 * 60, // Deadline: 24 hours from now
       "imageUrl"
     );
@@ -31,12 +31,12 @@ describe("Crowdfunding", function () {
   }
 
   describe("Create campaign", function () {
-    it("Should create a campaign with correct target in ETH", async function () {
+    it("Should create a campaign", async function () {
       const { crowdfunding, campaignId, owner } = await loadFixture(deployContractsFixture);
 
       const campaign = await crowdfunding.campaigns(campaignId);
       expect(campaign.title).to.equal("Test Campaign");
-      expect(campaign.target).to.equal(ethers.parseEther("10.0"));
+      expect(campaign.targetInUSD).to.equal(2000);
       expect(campaign.owner).to.equal(owner.address);
       expect(campaign.amountCollected).to.equal(0);
 
@@ -96,17 +96,20 @@ describe("Crowdfunding", function () {
 
       const donationAmount = ethers.parseEther("1.0"); // 1 ETH donation
       const expectedAmount = donationAmount * 99n / 100n; // 99% of the donation (after 1% commission)
-
+    
+      const campaign = await crowdfunding.campaigns(campaignId);
+      const targetInWei = await crowdfunding.convertUSDtoWEI(campaign.targetInUSD);
+   
       await expect(
         crowdfunding.connect(donor1).donateToCampaign(campaignId, { value: donationAmount })
       )
         .to.emit(crowdfunding, "DonationReceived")
         .withArgs(campaignId, donor1.address, expectedAmount, 100)
         .and.to.emit(crowdfunding, "RemainingAmountToRaise")
-        .withArgs(campaignId, ethers.parseEther("9.01"));
+        .withArgs(campaignId, (targetInWei - expectedAmount).toString());
 
-      const campaign = await crowdfunding.campaigns(campaignId);
-      expect(campaign.amountCollected).to.equal(expectedAmount);
+      const updatedCampaign = await crowdfunding.campaigns(campaignId);
+      expect(updatedCampaign.amountCollected).to.equal(expectedAmount);
     });
 
     it("Should send commission to commission manager and interact correctly", async function () {
@@ -159,6 +162,17 @@ describe("Crowdfunding", function () {
             crowdfunding.connect(donor1).donateToCampaign(inactiveCampaignId, { value: ethers.parseEther("1") })
         ).to.be.revertedWith("Campaign is no longer active.");
         });
+
+    it("Should not allow donations if the target is reached", async function () {
+        const { crowdfunding, donor1, campaignId } = await loadFixture(deployContractsFixture);
+
+        const donationAmount = ethers.parseEther("20.0"); // 20 ETH donation
+        await crowdfunding.connect(donor1).donateToCampaign(campaignId, { value: donationAmount });
+
+        await expect(
+            crowdfunding.connect(donor1).donateToCampaign(campaignId, { value: donationAmount })
+        ).to.be.revertedWith("Campaign target already reached.");
+    });
   });
 
   describe("Withdraw funds", function () {
