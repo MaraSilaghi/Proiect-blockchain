@@ -42,19 +42,18 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function _canSetOwner() internal view virtual override returns (bool) {
-    return msg.sender == owner();
-    }
+    return msg.sender == owner() || owner() == address(0);
+}
 
-    function initialize(
+   function initialize(
     address payable _commissionManager,
     address _priceFeedAddress
     ) public initializer {
+    _setupOwner(msg.sender);  
     commissionManager = ICommissionManager(_commissionManager);
     priceFeedAddress = _priceFeedAddress;
     numberOfCampaigns = 0;
-    }
-
-
+    } 
 
     function createCampaign(
         address _owner,
@@ -67,7 +66,7 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         require(_deadline > block.timestamp, "Deadline must be in the future.");
 
         Campaign storage campaign = campaigns[numberOfCampaigns];
-        uint256 targetInETH = convertUSDtoETH(_targetInUSD);
+        uint256 targetInETH = convertUSDtoWEI(_targetInUSD);
         campaign.owner = _owner;
         campaign.title = _title;
         campaign.description = _description;
@@ -135,12 +134,25 @@ contract Crowdfunding is Initializable, Upgradeable, Ownable {
         return allCampaigns;
     }
 
-    function convertUSDtoETH(uint256 _usdAmount) internal view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeedAddress);
-        (, int ethPrice, , , ) = priceFeed.latestRoundData();
-        require(ethPrice > 0, "Invalid ETH price");
+ function convertUSDtoWEI(uint256 _usdAmount) public view returns (uint256) {
+    AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeedAddress);
+    (, int256 ethPrice, , , ) = priceFeed.latestRoundData();
+    require(ethPrice > 0, "Invalid ETH price");
 
-        uint256 ethAmount = (_usdAmount * 10 ** 8) / uint256(ethPrice);
-        return ethAmount;
-    }
+    uint256 ethPriceScaled = uint256(ethPrice); 
+
+    uint256 weiAmount = (_usdAmount * (10**18) * (10**8)) / ethPriceScaled;
+
+    return weiAmount; 
+}
+
+
+   function getPriceFeedAddress() public view returns (address) {
+    return priceFeedAddress;
+}
+
+   function testConversion(uint256 usdAmount) public view returns (uint256) {
+    return convertUSDtoWEI(usdAmount);
+}
+
 }

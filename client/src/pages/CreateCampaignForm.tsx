@@ -11,12 +11,13 @@ import Web3 from "web3";
 import "../index.css";
 
 const web3 = new Web3(window.ethereum);
-const CROWDFUNDING_CONTRACT_ADDRESS = "0xc231B0fB976cfB1c99BDff28C2d78085464731D9";
+const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
 
 export function CreateCampaignForm() {
   const address = useAddress();
   const { contract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
-
+  console.log("Contract instance:", contract);
+  console.log("Contract address:", CROWDFUNDING_CONTRACT_ADDRESS);
   const { mutateAsync: createCampaign, isLoading: isCreating } =
     useContractWrite(contract, "createCampaign");
 
@@ -55,14 +56,16 @@ export function CreateCampaignForm() {
     setSuccessMessage(null);
 
     try {
-      const targetUsdValue = ethers.BigNumber.from(targetUSD || "0");
+      const targetUsdValue = await contract.call("convertUSDtoWEI", [Number(targetUSD)]);
+      console.log("Target in WEI:", targetUsdValue.toString());
+      
+
+      console.log("Target USD as BigNumber:", targetUsdValue.toString());
       const deadlineTimestamp = Math.floor(new Date(deadline).getTime() / 1000);
 
       let ipfsHash = "";
       if (selectedFile) {
-        console.log("[DEBUG] Începe uploadul IPFS...");
         const uploadResult = await uploadToIPFS({ data: [selectedFile] });
-        console.log("[DEBUG] Upload IPFS complet:", uploadResult);
         ipfsHash = uploadResult[0].replace("ipfs://", "");
       }
 
@@ -76,8 +79,6 @@ export function CreateCampaignForm() {
         ipfsHash,
       });
 
-      /// problema
-      console.log("check 1");
       const data = contract.encoder.encode("createCampaign", [
         address,
         title,
@@ -86,22 +87,18 @@ export function CreateCampaignForm() {
         deadlineTimestamp,
         ipfsHash,
       ]);
-      console.log("check 2");
       const transaction = {
         from: address,
         to: CROWDFUNDING_CONTRACT_ADDRESS,
         data,
       };
-      console.log("check 3");
 
       const estimatedGas = await web3.eth.estimateGas(transaction);
       const gasPrice = await web3.eth.getGasPrice();
-      console.log("check 4: ", {estimatedGas, gasPrice});
       
       const estimatedGasCostInEth = ethers.utils.formatEther(
         (BigInt(estimatedGas) * BigInt(gasPrice)).toString()
       );
-      console.log("check 5: ", {estimatedGasCostInEth});
       const maxGasCost = 0.01;
       if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
         setErrorMessage(
@@ -114,7 +111,6 @@ export function CreateCampaignForm() {
         `Transaction allowed! Estimated gas cost: ~${estimatedGasCostInEth} ETH. Proceeding...`
       );
 
-      /// problema
       try {
         await createCampaign({
           args: [

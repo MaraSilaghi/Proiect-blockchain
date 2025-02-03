@@ -23,7 +23,7 @@ const sepoliaWithCustomRPC = {
   name: "Sepolia",
   testnet: true,
 };
-
+console.log("Client ID:", clientId);
 createRoot(document.getElementById("root")!).render(
   //<React.StrictMode>
     <ThirdwebProvider

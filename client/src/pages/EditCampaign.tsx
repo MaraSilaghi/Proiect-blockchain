@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import Web3 from "web3";
 import "../index.css";
 
-const CROWDFUNDING_CONTRACT_ADDRESS = "0xc231B0fB976cfB1c99BDff28C2d78085464731D9";
+const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
 const web3 = new Web3(window.ethereum);
 
 export function EditCampaign() {

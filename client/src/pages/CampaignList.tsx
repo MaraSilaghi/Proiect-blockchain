@@ -6,13 +6,13 @@ import { Link } from "react-router-dom";
 import Web3 from "web3";
 import "../index.css";
 
-const CROWDFUNDING_CONTRACT_ADDRESS = "0xc231B0fB976cfB1c99BDff28C2d78085464731D9";
-const COMMISSION_MANAGER_CONTRACT_ADDRESS = "0xcA381ccBDbB2E3D51a2bF1De915f6ad04Db820c9";
+const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
+const COMMISSION_MANAGER_CONTRACT_ADDRESS = "0x0e936c30BCd0a974cd96d6da4a206ee7Deb4551E";
 
 const web3 = new Web3(window.ethereum);
 
 export function CampaignList() {
-
+  
   const { contract: crowdfundingContract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
   const { contract: commissionContract } = useContract(COMMISSION_MANAGER_CONTRACT_ADDRESS);
 
@@ -261,7 +261,7 @@ export function CampaignList() {
 
         {validCampaigns.map((campaign: any, filteredIndex: number) => {
           const imageHash = campaign.imageIPFSHash || "";
-          const targetInEth = ethers.utils.formatEther(campaign.target.toString());
+          const targetInEth = (Number(campaign.target) / 10 ** 18).toFixed(6); 
           const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
           const progress = (Number(collectedInEth) / Number(targetInEth)) * 100;
 
