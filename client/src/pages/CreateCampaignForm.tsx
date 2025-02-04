@@ -194,7 +194,7 @@ export function CreateCampaignForm() {
             </div>
 
             <div style={{ width: "100%" }}>
-              <label className="form-label">Image IPFS Hash:</label>
+              <label className="form-label">Image:</label>
               <input
                 type="file"
                 onChange={handleFileChange}
