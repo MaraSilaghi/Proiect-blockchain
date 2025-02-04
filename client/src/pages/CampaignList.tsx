@@ -56,11 +56,10 @@ export function CampaignList() {
           const targetInETHRescaled = ethers.utils.formatEther(targetInETH);
           const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
           const progress = (Number(collectedInEth) / targetInETH) * 100;
-          console.log("Progress:", progress, "Target in ETH:", targetInETHRescaled, "Collected in ETH:", collectedInEth);
 
           return {
             ...campaign,
-            targetInETH: targetInETHRescaled, // Target in ETH
+            targetInETH: targetInETHRescaled, // target in ETH
             progress
           };
         })
@@ -214,59 +213,6 @@ export function CampaignList() {
     }
   };
 
-  const handleWithdraw = async () => {
-    try {
-      if (!address) {
-        setWithdrawMessage("You need to connect your wallet.");
-        return;
-      }
-      if (!commissionContract) {
-        setWithdrawMessage("CommissionManager contract not loaded.");
-        return;
-      }
-
-      const amountInWei = ethers.utils.parseEther(withdrawAmount);
-      if (amountInWei.lte(0)) {
-        setWithdrawMessage("Amount must be > 0.");
-        return;
-      }
-
-      const currentCommBN = currentCommission || ethers.BigNumber.from("0");
-      if (amountInWei.gt(currentCommBN)) {
-        setWithdrawMessage("Not enough commission funds available.");
-        return;
-      }
-
-      const data = commissionContract.encoder.encode("withdrawAmount", [address, amountInWei]);
-      const tx = {
-        from: address,
-        to: COMMISSION_MANAGER_CONTRACT_ADDRESS,
-        data,
-      };
-
-      const estimatedGas = await web3.eth.estimateGas(tx);
-      const gasPrice = await web3.eth.getGasPrice();
-      const estimatedGasCostInEth = ethers.utils.formatEther(
-        (BigInt(estimatedGas) * BigInt(gasPrice)).toString()
-      );
-
-      const maxGasCost = 0.01;
-      if (parseFloat(estimatedGasCostInEth) > maxGasCost) {
-        setWithdrawMessage(`Gas cost too high: ${estimatedGasCostInEth} ETH. Not allowed.`);
-        return;
-      }
-
-      setWithdrawMessage(`Transaction allowed! Gas ~${estimatedGasCostInEth} ETH.`);
-
-      await withdrawAmountFn({ args: [address, amountInWei] });
-      setWithdrawMessage(`Successfully withdrew ${withdrawAmount} ETH.`);
-      setWithdrawAmount("");
-    } catch (error) {
-      console.error("Failed to withdraw commissions:", error);
-      setWithdrawMessage("Something went wrong. Please try again.");
-    }
-  };
-
   return (
     <div
       className="campaigns-container"
@@ -387,77 +333,6 @@ export function CampaignList() {
         })}
 
         {commissionError && <p style={{ color: "red" }}>{commissionError}</p>}
-
-        {address?.toLowerCase() === ownerAddress?.toLowerCase() && (
-          <div
-            style={{
-              marginTop: "2rem",
-              padding: "1rem",
-              borderRadius: "10px",
-              backgroundColor: "#4a3c56",
-              maxWidth: "500px",
-              margin: "auto",
-              textAlign: "center",
-            }}
-          >
-            <h3 style={{ color: "#ffc0cb" }}>Commission Management</h3>
-            {isCommissionLoading ? (
-              <p>Loading commission data...</p>
-            ) : (
-              <p style={{ color: "#e1bbc2" }}>
-                <strong>Current Commissions:</strong>{" "}
-                {currentCommission
-                  ? ethers.utils.formatEther(currentCommission)
-                  : "0"}{" "}
-                ETH
-              </p>
-            )}
-
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Amount to withdraw (ETH)"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-              style={{
-                backgroundColor: "#51465a",
-                border: "1px solid #e1bbc2",
-                color: "#fff",
-                borderRadius: "5px",
-                width: "100%",
-                padding: "0.5rem",
-                marginTop: "1rem",
-              }}
-            />
-            <button
-              onClick={handleWithdraw}
-              style={{
-                backgroundColor: "#b3888d",
-                color: "#fff",
-                marginTop: "1rem",
-                padding: "0.7rem 1.2rem",
-                borderRadius: "0.3rem",
-              }}
-            >
-              Withdraw Commissions
-            </button>
-
-            {withdrawMessage && (
-              <p
-                style={{
-                  marginTop: "1rem",
-                  color:
-                    withdrawMessage.includes("Successfully") ||
-                    withdrawMessage.includes("Transaction allowed")
-                      ? "green"
-                      : "red",
-                }}
-              >
-                {withdrawMessage}
-              </p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

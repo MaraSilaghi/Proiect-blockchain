@@ -16,8 +16,6 @@ const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40
 export function CreateCampaignForm() {
   const address = useAddress();
   const { contract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
-  console.log("Contract instance:", contract);
-  console.log("Contract address:", CROWDFUNDING_CONTRACT_ADDRESS);
   const { mutateAsync: createCampaign, isLoading: isCreating } =
     useContractWrite(contract, "createCampaign");
 
@@ -57,10 +55,7 @@ export function CreateCampaignForm() {
 
     try {
       const targetUsdValue = Number(targetUSD);
-      console.log("Target in USD:", targetUsdValue);
-      
-
-      console.log("Target USD as BigNumber:", targetUsdValue.toString());
+    
       const deadlineTimestamp = Math.floor(new Date(deadline).getTime() / 1000);
 
       let ipfsHash = "";
@@ -69,15 +64,6 @@ export function CreateCampaignForm() {
         ipfsHash = uploadResult[0].replace("ipfs://", "");
       }
 
-      //corect
-      console.log("Primesc: ", {
-        address,
-        title,
-        description,
-        targetUsdValue: targetUsdValue.toString(),
-        deadlineTimestamp,
-        ipfsHash,
-      });
 
       const data = contract.encoder.encode("createCampaign", [
         address,
