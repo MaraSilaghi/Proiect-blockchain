@@ -11,7 +11,7 @@ import Web3 from "web3";
 import "../index.css";
 
 const web3 = new Web3(window.ethereum);
-const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
+const CROWDFUNDING_CONTRACT_ADDRESS = "0xDefB6Fa28D467a7F09d52695416c61624e6193B8";
 
 export function CreateCampaignForm() {
   const address = useAddress();
