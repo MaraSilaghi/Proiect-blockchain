@@ -13,8 +13,8 @@ contract CommissionManager is ICommissionManager, Ownable, ReentrancyGuard {
     uint256 public totalCollectedAmountEver;
 
     uint256 public lastWithdrawalTimestamp;
-    uint256 public withdrawalCooldown = 1 weeks; // Admin can withdraw at most once a week
-    uint256 public withdrawalLimitPercentage = 50; // Admin can withdraw up to 50% of current accumulated commissions at a time
+    uint256 public withdrawalCooldown = 1 weeks; // admin can withdraw at most once a week
+    uint256 public withdrawalLimitPercentage = 50; // admin can withdraw up to 50% of current accumulated commissions at a time
 
     constructor(address _owner) {
         _setupOwner(_owner);
@@ -122,4 +122,9 @@ contract CommissionManager is ICommissionManager, Ownable, ReentrancyGuard {
     function getWithdrawalLimitPercentage() public view returns (uint256) {
         return withdrawalLimitPercentage;
     }
+
+    function setWithdrawalCooldown(uint256 _newCooldown) external onlyOwner {
+    require(_newCooldown > 0, "Cooldown must be greater than zero.");
+    withdrawalCooldown = _newCooldown;
+}
 }
