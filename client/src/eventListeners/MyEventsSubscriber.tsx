@@ -3,7 +3,7 @@ import { useContract } from "@thirdweb-dev/react";
 import { useCrowdfundingEvents } from "./useCrowdfundingEvents";
 import { ethers } from "ethers";
 
-const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
+const CROWDFUNDING_CONTRACT_ADDRESS = "0xDefB6Fa28D467a7F09d52695416c61624e6193B8";
 
 export function MyEventsSubscriber() {
   const { contract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);

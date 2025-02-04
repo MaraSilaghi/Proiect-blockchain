@@ -3,22 +3,23 @@ import backgroundImg from "../assets/background.png";
 import { useContract, useContractWrite, useAddress  } from "@thirdweb-dev/react";
 import { useCampaigns } from "../contexts/CampaignsContext";
 import { ethers } from "ethers";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Web3 from "web3";
+import { useCrowdfundingEvents } from "../eventListeners/useCrowdfundingEvents";
 import CampaignCard from "../components/CampaignCard";
 import "../index.css";
 
-const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
+const CROWDFUNDING_CONTRACT_ADDRESS = "0xDefB6Fa28D467a7F09d52695416c61624e6193B8";
 const COMMISSION_MANAGER_CONTRACT_ADDRESS = "0x0e936c30BCd0a974cd96d6da4a206ee7Deb4551E";
 
 const web3 = new Web3(window.ethereum);
 
 export function CampaignList() {
-  
+  const navigate = useNavigate(); 
   const { contract: crowdfundingContract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
   const { contract: commissionContract } = useContract(COMMISSION_MANAGER_CONTRACT_ADDRESS);
 
-  const { campaigns, isCampaignsLoading, campaignsError } = useCampaigns();
+  const { campaigns, isCampaignsLoading, campaignsError, fetchCampaigns } = useCampaigns();
 
   const [currentCommission, setCurrentCommission] = useState<any>(null);
   const [isCommissionLoading, setIsCommissionLoading] = useState(true);
@@ -37,6 +38,28 @@ export function CampaignList() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawMessage, setWithdrawMessage] = useState("");
 
+
+  useCrowdfundingEvents(
+    crowdfundingContract,
+    async () => {
+      console.log(" Campaign created - refreshing campaigns...");
+      await fetchCampaigns();
+    },
+    async () => {
+      console.log(" Campaign edited - refreshing campaigns...");
+      await fetchCampaigns();
+    },
+    async () => {
+      console.log(" Donation received - refreshing campaigns...");
+      await fetchCampaigns();
+    },
+    async () => {
+      console.log(" Withdrawal made - refreshing campaigns...");
+      await fetchCampaigns();
+    }
+  );
+
+  
   useEffect(() => {
     if (!commissionContract) return;
 
@@ -184,20 +207,38 @@ export function CampaignList() {
         {validCampaigns.length === 0 && <p>No campaigns found.</p>}
 
         <div className="campaigns-grid">
-          {validCampaigns.map((campaign, filteredIndex) => (
-            <Link to={`/campaign-details/${filteredIndex}`} key={filteredIndex} style={{ textDecoration: "none" }}>
-              <CampaignCard
-                campaign={campaign}
-                index={filteredIndex}
-                donationAmounts={donationAmounts}
-                setDonationAmounts={setDonationAmounts}
-                handleDonate={handleDonate}
-                messages={messages}
-                address={address}
-              />
-            </Link>
-          ))}
-        </div>
+  {validCampaigns.map((campaign, filteredIndex) => (
+  <Link
+  to={`/campaign-details/${filteredIndex}`}
+  key={filteredIndex}
+  style={{ textDecoration: "none" }}
+  onClick={(e) => {
+    const target = e.target as HTMLElement;
+    
+    // 🔹 Dacă butonul are una dintre aceste clase, nu navigăm
+    if (target.classList.contains("donate-button") || target.classList.contains(".edit-button")) {
+      return; // Permitem acțiunea butonului, dar nu navigăm
+    }
+
+    e.preventDefault(); // 🔹 Blochează navigarea pe restul cardului
+  }}
+>
+  <CampaignCard
+    campaign={campaign}
+    index={filteredIndex}
+    donationAmounts={donationAmounts}
+    setDonationAmounts={setDonationAmounts}
+    handleDonate={handleDonate}
+    messages={messages}
+    address={address}
+  />
+</Link>
+
+ 
+ 
+  ))}
+</div>
+
 
         {commissionError && <p style={{ color: "red" }}>{commissionError}</p>}
       </div>

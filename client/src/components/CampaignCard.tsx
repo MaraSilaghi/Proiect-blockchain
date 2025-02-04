@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React from "react";
+import { useNavigate } from "react-router-dom"; // ✅ Importă useNavigate
 import { ethers } from "ethers";
 
 const CampaignCard = ({ campaign, index, donationAmounts, setDonationAmounts, handleDonate, messages, address }) => {
+  const navigate = useNavigate(); // ✅ Hook pentru navigare
+
   const imageHash = campaign.imageIPFSHash || "";
   const targetInUSD = Number(campaign.targetInUSD);
   const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
@@ -17,22 +19,22 @@ const CampaignCard = ({ campaign, index, donationAmounts, setDonationAmounts, ha
         src={imageHash ? `https://ipfs.io/ipfs/${imageHash}` : "https://via.placeholder.com/200"}
         alt={campaign.title}
       />
-      <div style={{textAlign: "left"}}>
-      <p style={{ color: "#e1bbc2" }}>
-        <strong>Owner:</strong> {campaign.owner}
-      </p>
-      <p style={{ color: "#e1bbc2" }}>
-        <strong>Target:</strong> {targetInUSD} USD
-      </p>
-      <p style={{ color: "#e1bbc2" }}>
-        <strong>Target in ETH:</strong> {campaign.targetInETH} ETH
-      </p>
-      <p style={{ color: "#e1bbc2" }}>
-        <strong>Deadline:</strong> {new Date(campaign.deadline * 1000).toLocaleDateString()}
-      </p>
-      <p style={{ color: "#e1bbc2" }}>
-        <strong>Raised:</strong> {collectedInEth} ETH
-      </p>
+      <div style={{ textAlign: "left" }}>
+        <p style={{ color: "#e1bbc2" }}>
+          <strong>Owner:</strong> {campaign.owner}
+        </p>
+        <p style={{ color: "#e1bbc2" }}>
+          <strong>Target:</strong> {targetInUSD} USD
+        </p>
+        <p style={{ color: "#e1bbc2" }}>
+          <strong>Target in ETH:</strong> {campaign.targetInETH} ETH
+        </p>
+        <p style={{ color: "#e1bbc2" }}>
+          <strong>Deadline:</strong> {new Date(campaign.deadline * 1000).toLocaleDateString()}
+        </p>
+        <p style={{ color: "#e1bbc2" }}>
+          <strong>Raised:</strong> {collectedInEth} ETH
+        </p>
       </div>
 
       <div className="progress-bar">
@@ -88,24 +90,18 @@ const CampaignCard = ({ campaign, index, donationAmounts, setDonationAmounts, ha
         </p>
       )}
 
-      {address === campaign.owner && (
-        <div style={{ marginTop: "1rem" }}>
-          <Link
-            to={`/edit-campaign/${index}`}
-            style={{
-              marginLeft: "1rem",
-              color: "white",
-              backgroundColor: "#8e6470",
-              padding: "0.7rem 1.2rem",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: "0.3rem",
-            }}
-          >
+      {/* 🔹 Butoane pentru "Edit" și "Details" într-un container flex */}
+      <div className="button-container">
+        {address === campaign.owner && (
+          <button className="edit-button" onClick={() => navigate(`/edit-campaign/${index}`)}>
             Edit Campaign
-          </Link>
-        </div>
-      )}
+          </button>
+        )}
+
+        <button className="details-button" onClick={() => navigate(`/campaign-details/${index}`)}>
+          Details
+        </button>
+      </div>
     </div>
   );
 };

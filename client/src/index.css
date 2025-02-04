@@ -420,6 +420,7 @@
   flex-direction: column;
   height: 100%; 
   transition: transform 0.2s;
+  padding-bottom: 0rem;
 }
 
 .campaign-card:hover {
@@ -499,4 +500,38 @@
   font-size: 20px;
   font-weight: 500;
   color:white;
+}
+
+.button-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  justify-content: center; /* Butoanele sunt centrate */
+}
+
+.edit-button, .details-button {
+  padding: 8px 16px;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.3s;
+  font-size: medium;
+}
+
+.edit-button {
+  background-color: #8e6470;
+}
+
+.edit-button:hover {
+  background-color: #754d58;
+}
+
+.details-button {
+  background-color: #8e6470;
+}
+
+.details-button:hover {
+  background-color: #754d58;
 }
