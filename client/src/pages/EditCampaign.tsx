@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import backgroundImg from "../assets/background.png";
 import { useContract, useContractWrite, useAddress } from "@thirdweb-dev/react";
+import { useCampaigns } from "../contexts/CampaignsContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import Web3 from "web3";
@@ -17,9 +18,7 @@ export function EditCampaign() {
   //fara usecontractread
   const { contract: crowdfundingContract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
 
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true);
-  const [campaignError, setCampaignError] = useState<string | null>(null);
+  const { campaigns, isCampaignsLoading, campaignsError } = useCampaigns(); 
 
   const { mutateAsync: editCampaign, isLoading: isEditing } =
     useContractWrite(crowdfundingContract, "editCampaign");
@@ -31,28 +30,6 @@ export function EditCampaign() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [isCampaignLoaded, setIsCampaignLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!crowdfundingContract) return; 
-
-    async function fetchCampaigns() {
-      try {
-        setIsLoadingCampaigns(true);
-        setCampaignError(null);
-        if (!crowdfundingContract) return; 
-        const result = await crowdfundingContract.call("getCampaigns");
-        setCampaigns(result);
-      } catch (err) {
-        console.error("Failed to load campaigns:", err);
-        setCampaignError("Error loading campaigns");
-      } finally {
-        setIsLoadingCampaigns(false);
-      }
-    }
-
-    fetchCampaigns();
-  }, [crowdfundingContract]);
-
 
   useEffect(() => {
     if (!id) {
@@ -183,11 +160,11 @@ export function EditCampaign() {
     return <div>Loading Crowdfunding contract...</div>;
   }
 
-  if (isLoadingCampaigns) {
+  if (isCampaignsLoading) {
     return <div>Loading campaigns...</div>;
   }
-  if (campaignError) {
-    return <div>{campaignError}</div>;
+  if (campaignsError) {
+    return <div>{campaignsError}</div>;
   }
 
   return (

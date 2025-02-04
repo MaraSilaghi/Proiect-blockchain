@@ -8,6 +8,8 @@ import { EditCampaign } from "./pages/EditCampaign";
 import { MyEventsSubscriber } from "./eventListeners/MyEventsSubscriber";
 import { CommissionEventsSubscriber } from "./eventListeners/CommissionEventsSubscriber";
 import { WithdrawFunds } from "./pages/WithdrawFunds";
+import CampaignDetails from "./components/CampaignDetails";
+import { CampaignProvider } from "./contexts/CampaignsContext";
 
 const COMMISSION_MANAGER_CONTRACT_ADDRESS = "0x0e936c30BCd0a974cd96d6da4a206ee7Deb4551E";
 
@@ -53,13 +55,16 @@ export function App() {
         </nav>
 
         <main style={{ width: "100%", height: "100%", padding: 0, margin: 0 }}>
+        <CampaignProvider>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/campaigns" element={<CampaignList />} />
             <Route path="/create-campaign" element={<CreateCampaignForm />} />
             <Route path="/edit-campaign/:id" element={<EditCampaign />} />
+            <Route path="/campaign-details/:id" element={<CampaignDetails />} />
             {isAdmin && <Route path="/withdraw-funds" element={<WithdrawFunds />} />}
           </Routes>
+          </CampaignProvider>
           <MyEventsSubscriber />
           <CommissionEventsSubscriber />
         </main>

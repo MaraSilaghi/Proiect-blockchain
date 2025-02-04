@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import backgroundImg from "../assets/background.png";
 import { useContract, useContractWrite, useAddress  } from "@thirdweb-dev/react";
+import { useCampaigns } from "../contexts/CampaignsContext";
 import { ethers } from "ethers";
 import { Link } from "react-router-dom";
 import Web3 from "web3";
+import CampaignCard from "../components/CampaignCard";
 import "../index.css";
 
 const CROWDFUNDING_CONTRACT_ADDRESS = "0xf4E034e4CeDd516CE0D8951e8598969Cc826f40e";
@@ -16,9 +18,7 @@ export function CampaignList() {
   const { contract: crowdfundingContract } = useContract(CROWDFUNDING_CONTRACT_ADDRESS);
   const { contract: commissionContract } = useContract(COMMISSION_MANAGER_CONTRACT_ADDRESS);
 
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [isCampaignsLoading, setIsCampaignsLoading] = useState(true);
-  const [campaignsError, setCampaignsError] = useState<string | null>(null);
+  const { campaigns, isCampaignsLoading, campaignsError } = useCampaigns();
 
   const [currentCommission, setCurrentCommission] = useState<any>(null);
   const [isCommissionLoading, setIsCommissionLoading] = useState(true);
@@ -36,46 +36,6 @@ export function CampaignList() {
 
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawMessage, setWithdrawMessage] = useState("");
-
-  //fetch manual, fara useread
-  useEffect(() => {
-    if (!crowdfundingContract) return;
-
-    const fetchCampaigns = async () => {
-      try {
-        setIsCampaignsLoading(true);
-        setCampaignsError(null);
-
-        if (!crowdfundingContract) return;
-        const result = await crowdfundingContract.call("getCampaigns");
-         // Fetch target in ETH for each campaign
-        const updatedCampaigns = await Promise.all(
-        result.map(async (campaign: any) => {
-          const targetInUSD = ethers.BigNumber.from(campaign.targetInUSD);
-          const targetInETH = await crowdfundingContract.call("convertUSDtoWEI", [targetInUSD]);
-          const targetInETHRescaled = ethers.utils.formatEther(targetInETH);
-          const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
-          const progress = (Number(collectedInEth) / targetInETH) * 100;
-
-          return {
-            ...campaign,
-            targetInETH: targetInETHRescaled, // target in ETH
-            progress
-          };
-        })
-      );
-
-        setCampaigns(updatedCampaigns);
-      } catch (err) {
-        console.error("Error reading campaigns:", err);
-        setCampaignsError("Failed to load campaigns");
-      } finally {
-        setIsCampaignsLoading(false);
-      }
-    }
-
-    fetchCampaigns();
-  }, [crowdfundingContract]);
 
   useEffect(() => {
     if (!commissionContract) return;
@@ -223,114 +183,21 @@ export function CampaignList() {
 
         {validCampaigns.length === 0 && <p>No campaigns found.</p>}
 
-        {validCampaigns.map((campaign: any, filteredIndex: number) => {
-          const imageHash = campaign.imageIPFSHash || "";
-          const targetInUSD = Number(campaign.targetInUSD);
-          const collectedInEth = ethers.utils.formatEther(campaign.amountCollected.toString());
-          const progress = (Number(collectedInEth) / Number(campaign.targetInETH)) * 100;
-
-          return (
-            <div className="campaign-card" key={filteredIndex}>
-              <h3 style={{ fontSize: "25px", color: "#ffc0cb", fontWeight: "500" }}>
-                {campaign.title}
-              </h3>
-              <p style={{ color: "#e1bbc2" }}>{campaign.description}</p>
-              <img
-                className="campaign-image"
-                src={imageHash ? `https://ipfs.io/ipfs/${imageHash}` : "https://via.placeholder.com/200"}
-                alt={campaign.title}
+        <div className="campaigns-grid">
+          {validCampaigns.map((campaign, filteredIndex) => (
+            <Link to={`/campaign-details/${filteredIndex}`} key={filteredIndex} style={{ textDecoration: "none" }}>
+              <CampaignCard
+                campaign={campaign}
+                index={filteredIndex}
+                donationAmounts={donationAmounts}
+                setDonationAmounts={setDonationAmounts}
+                handleDonate={handleDonate}
+                messages={messages}
+                address={address}
               />
-              <p style={{ color: "#e1bbc2" }}>
-                <strong>Owner:</strong> {campaign.owner}
-              </p>
-              <p style={{ color: "#e1bbc2" }}>
-                <strong>Target:</strong> {targetInUSD} USD
-              </p>
-              <p style={{ color: "#e1bbc2" }}>
-                <strong>Target in ETH:</strong> {campaign.targetInETH} ETH
-              </p>
-              <p style={{ color: "#e1bbc2" }}>
-                <strong>Deadline:</strong> {new Date(campaign.deadline * 1000).toLocaleDateString()}
-              </p>
-              <p style={{ color: "#e1bbc2" }}>
-                <strong>Amount Collected:</strong> {collectedInEth} ETH
-              </p>
-
-              <div className="progress-bar">
-                <div
-                  style={{
-                    width: `${Math.min(progress, 100)}%`,
-                    background: progress >= 100 ? "green" : "blue",
-                    height: "10px",
-                  }}
-                />
-              </div>
-              <p style={{ color: "#e1bbc2" }}>{Math.min(progress, 100).toFixed(2)}% funded</p>
-
-              {progress < 100 ? (
-                <div style={{ marginTop: "1rem" }}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Amount (ETH)"
-                    value={donationAmounts[filteredIndex] || ""}
-                    onChange={(e) =>
-                      setDonationAmounts((prev) => ({
-                        ...prev,
-                        [filteredIndex]: e.target.value,
-                      }))
-                    }
-                    className="border border-zinc-600 bg-zinc-800 text-white px-1 py-1 w-32"
-                  />
-                  <button
-                    onClick={() => handleDonate(filteredIndex, donationAmounts[filteredIndex] || "0")}
-                    className="bg-[#b3888d] text-white py-1 px-4 ml-1 rounded"
-                  >
-                    Donate
-                  </button>
-                </div>
-              ) : (
-                <p style={{ color: "green", marginTop: "1rem" }}>
-                  This campaign has reached its funding goal. Thank you!
-                </p>
-              )}
-
-              {messages[filteredIndex] && (
-                <p
-                  style={{
-                    color:
-                      messages[filteredIndex].includes("Successfully") ||
-                      messages[filteredIndex].includes("Transaction allowed")
-                        ? "green"
-                        : "red",
-                    marginTop: "1rem",
-                  }}
-                >
-                  {messages[filteredIndex]}
-                </p>
-              )}
-
-              {address === campaign.owner && (
-                <div style={{ marginTop: "1rem" }}>
-                  <Link
-                    to={`/edit-campaign/${filteredIndex}`}
-                    style={{
-                      marginLeft: "1rem",
-                      color: "white",
-                      backgroundColor: "#8e6470",
-                      padding: "0.7rem 1.2rem",
-                      border: "none",
-                      cursor: "pointer",
-                      borderRadius: "0.3rem",
-                    }}
-                  >
-                    Edit Campaign
-                  </Link>
-                </div>
-              )}
-            </div>
-          );
-        })}
+            </Link>
+          ))}
+        </div>
 
         {commissionError && <p style={{ color: "red" }}>{commissionError}</p>}
       </div>

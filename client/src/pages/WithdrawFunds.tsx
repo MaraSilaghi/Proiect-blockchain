@@ -114,11 +114,11 @@ export function WithdrawFunds() {
         textAlign: "center",
       }}
     >
-      <h3 style={{ color: "#ffc0cb" }}>Commission Management</h3>
+      <h3 style={{ color: "#ffc0cb", fontSize:"22px", fontWeight:"bold" }}>Commission Management</h3>
       {isLoading ? (
         <p>Loading commission data...</p>
       ) : (
-        <>
+        <div style={{textAlign:"left", marginTop: "1rem", marginBottom:"1rem"}}>
           <p style={{ color: "#e1bbc2" }}>
             <strong>Commission Percentage per transaction:</strong> {commissionData.percentage}%
           </p>
@@ -131,7 +131,7 @@ export function WithdrawFunds() {
           <p style={{ color: "#e1bbc2" }}>
             <strong>Total Withdrawn:</strong> {commissionData.totalWithdrawn} ETH
           </p>
-        </>
+        </div>
       )}
 
       <input
@@ -148,6 +148,7 @@ export function WithdrawFunds() {
           width: "100%",
           padding: "0.5rem",
           marginTop: "1rem",
+          marginBottom: "1rem",
         }}
       />
       <button
